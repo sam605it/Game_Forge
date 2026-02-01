@@ -7,19 +7,30 @@ export async function POST(req: Request) {
   try {
     const { prompt } = await req.json();
 
-    const ai = new GoogleGenAI({
+    if (!prompt) {
+      return NextResponse.json({ error: "No prompt provided" }, { status: 400 });
+    }
+
+    const client = new GoogleGenAI({
       apiKey: process.env.GOOGLE_API_KEY!,
     });
 
-    const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const response = await client.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+    });
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+    const text = response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
     return NextResponse.json({ text });
-  } catch (err: any) {
+  } catch (error: any) {
     return NextResponse.json(
-      { error: err.message },
+      { error: error.message ?? "AI generation error" },
       { status: 500 }
     );
   }
