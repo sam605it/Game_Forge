@@ -1,4 +1,5 @@
-
+"use client";
+import { db } from "@/services/db.client";
 import React from 'react';
 
 interface GameInstructionsProps {
