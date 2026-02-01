@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Gemini Game Forge",
-  description: "AI-powered mini game generator",
+  title: "GameForge",
+  description: "AI-powered game creation platform",
 };
 
 export default function RootLayout({
