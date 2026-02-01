@@ -8,14 +8,14 @@ export async function POST(req: Request) {
     const { prompt } = await req.json();
 
     if (!prompt) {
-      return NextResponse.json({ error: "No prompt provided" }, { status: 400 });
+      return NextResponse.json({ error: "No prompt" }, { status: 400 });
     }
 
-    const client = new GoogleGenAI({
+    const ai = new GoogleGenAI({
       apiKey: process.env.GOOGLE_API_KEY!,
     });
 
-    const response = await client.models.generateContent({
+    const response = await ai.models.generateContent({
       model: "gemini-1.5-flash",
       contents: [
         {
@@ -25,12 +25,13 @@ export async function POST(req: Request) {
       ],
     });
 
-    const text = response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const text =
+      response.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
     return NextResponse.json({ text });
-  } catch (error: any) {
+  } catch (err: any) {
     return NextResponse.json(
-      { error: error.message ?? "AI generation error" },
+      { error: err.message ?? "AI error" },
       { status: 500 }
     );
   }
