@@ -1,49 +1,21 @@
 "use client";
-
 import { useState } from "react";
 
 export default function Home() {
-  const [input, setInput] = useState("");
-  const [output, setOutput] = useState("Type something to start.");
-  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState("Frontend loaded.");
 
-  const send = async () => {
-    if (!input.trim()) return;
-
-    setLoading(true);
-    setOutput("Thinking...");
-
-    try {
-      const res = await fetch("/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: input })
-      });
-
-      const json = await res.json();
-      setOutput(JSON.stringify(json, null, 2));
-    } catch {
-      setOutput("Fetch failed.");
-    } finally {
-      setLoading(false);
-    }
+  const test = async () => {
+    setMsg("Button clicked...");
+    const res = await fetch("/api/ai", { method: "POST" });
+    const json = await res.json();
+    setMsg(JSON.stringify(json));
   };
 
   return (
-    <main style={{ padding: "2rem" }}>
-      <h1>Game Forge</h1>
-
-      <p>{output}</p>
-
-      <input
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        placeholder="Make Checkers"
-      />
-
-      <button onClick={send} disabled={loading}>
-        Send
-      </button>
-    </main>
+    <div style={{ padding: 24 }}>
+      <h1>GameForge</h1>
+      <p>{msg}</p>
+      <button onClick={test}>Test API</button>
+    </div>
   );
 }
