@@ -2,8 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Google AI Studio theme variables */
+/* ===============================
+   Google AI Studio – ORIGINAL UI
+   =============================== */
+
 :root {
+  --app-height: 100dvh;
   --accent-primary: #38bdf8;
   --accent-secondary: #818cf8;
   --bg-main: #030712;
@@ -27,25 +31,73 @@
 
 html,
 body {
+  min-height: var(--app-height);
+  width: 100%;
+  margin: 0;
+  padding: 0;
   background-color: var(--bg-main);
   color: var(--text-main);
-  font-family: system-ui, sans-serif;
-  min-height: 100%;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* UI helpers */
+#root {
+  min-height: 100vh;
+  width: 100%;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+button {
+  touch-action: manipulation;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.2);
+  border-radius: 10px;
+}
+
 .glass {
   background: var(--glass-bg);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
+  transition: background 0.3s ease, border 0.3s ease;
 }
 
 .text-gradient {
   background: linear-gradient(
     135deg,
-    var(--accent-primary),
-    var(--accent-secondary)
+    var(--accent-primary) 0%,
+    var(--accent-secondary) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
 }
