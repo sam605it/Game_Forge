@@ -1,5 +1,5 @@
 "use client";
-
+import { db } from "@/services/db.client";
 import { useState } from "react";
 
 export default function AppClient() {
