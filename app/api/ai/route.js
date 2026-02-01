@@ -1,7 +1,7 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export const runtime = "nodejs"; // REQUIRED for Gemini
+export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
@@ -21,7 +21,6 @@ Schema:
 {
   "scene": string,
   "playerOptions": string[],
-  "outcome": string,
   "stateChanges": object
 }
 
@@ -43,7 +42,7 @@ ${JSON.stringify(gameState)}
     });
 
   } catch (err) {
-    console.error("AI ENGINE ERROR:", err);
+    console.error("AI ERROR:", err);
     return NextResponse.json(
       { ok: false, error: err.message },
       { status: 500 }
