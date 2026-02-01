@@ -1,7 +1,5 @@
-"use client";
+import GameForgeUI from "./ui/GameForgeUI";
 
-import AppClient from "../components/AppClient";
-
-export default function Page() {
-  return <AppClient />;
+export default function HomePage() {
+  return <GameForgeUI />;
 }
