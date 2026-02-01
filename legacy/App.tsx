@@ -1,4 +1,4 @@
-
+"use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { GameForgeService } from './services/geminiService';
 import { db } from './services/db';
