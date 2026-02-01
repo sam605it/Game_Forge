@@ -1,4 +1,5 @@
-
+"use client";
+import { db } from "@/services/db.client";
 import React, { useEffect, useRef, useState } from 'react';
 import GameInstructions from './GameInstructions';
 
