@@ -1,3 +1,5 @@
+console.log("🔥 AI ROUTE HIT");
+
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
