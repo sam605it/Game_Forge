@@ -2,7 +2,7 @@
 "use client";
 
 /**
- * BUILD-SAFE DB STUB
+ * Build-safe DB stub for Next.js
  * ------------------
  * This prevents Next.js build crashes.
  * Replace with real Dexie DB later (client-only).
