@@ -1,26 +1,52 @@
-import { GoogleGenerativeAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { NextResponse } from "next/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+export const runtime = "nodejs"; // REQUIRED for Gemini
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "POST only" });
-  }
-
+export async function POST(req) {
   try {
-    const { prompt } = req.body;
+    const { prompt, gameState } = await req.json();
 
-    if (!prompt) {
-      return res.status(400).json({ error: "Missing prompt" });
-    }
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash"
+    });
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const systemPrompt = `
+You are an AI mini game engine.
+Return ONLY valid JSON.
+No markdown. No commentary.
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
+Schema:
+{
+  "scene": string,
+  "playerOptions": string[],
+  "outcome": string,
+  "stateChanges": object
+}
 
-    res.status(200).json({ output: text });
+Current game state:
+${JSON.stringify(gameState)}
+`;
+
+    const result = await model.generateContent([
+      systemPrompt,
+      prompt
+    ]);
+
+    const raw = result.response.text();
+    const json = raw.match(/\{[\s\S]*\}/)?.[0];
+
+    return NextResponse.json({
+      ok: true,
+      data: JSON.parse(json)
+    });
+
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("AI ENGINE ERROR:", err);
+    return NextResponse.json(
+      { ok: false, error: err.message },
+      { status: 500 }
+    );
   }
 }
