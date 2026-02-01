@@ -1,5 +1,5 @@
 "use client";
-import { db } from "@/services/db.client";
+import Dexie from "dexie";
 import type { SavedGame, User } from "../types";
 
 export class ForgeDB extends Dexie {
