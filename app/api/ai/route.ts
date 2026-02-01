@@ -1,7 +1,7 @@
 console.log("🔥 AI ROUTE HIT");
 
 import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from "@google/genai";
 
 export const runtime = "nodejs";
 
