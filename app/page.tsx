@@ -1,5 +1,6 @@
-import LegacyUI from "./components/LegacyUI";
+import LegacyApp from "./LegacyApp";
 
-export default function Home() {
-  return <LegacyUI />;
+export default function Page() {
+  return <LegacyApp />;
 }
+
