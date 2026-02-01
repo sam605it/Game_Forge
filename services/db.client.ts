@@ -8,4 +8,12 @@ export class ForgeDB extends Dexie {
   games!: Table<SavedGame, string>;
 
   constructor() {
-    super("GameForge
+    super("GameForge");
+    this.version(1).stores({
+      users: "id",
+      games: "id",
+    });
+  }
+}
+
+export const db = new ForgeDB();
