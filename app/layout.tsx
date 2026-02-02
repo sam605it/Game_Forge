@@ -1,7 +1,6 @@
-import "../styles/globals.css";
-import "../styles/tailwind.css";
-import "../styles/theme.css";
-
+import "./styles/globals.css";
+import "./styles/tailwind.css";
+import "./styles/theme.css";
 
 export default function RootLayout({
   children,
@@ -9,10 +8,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className="bg-black text-white">
-        {children}
-      </body>
+    <html lang="en">
+      <body>{children}</body>
     </html>
   );
 }
+
