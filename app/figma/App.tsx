@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ChatInterface } from "./components/ChatInterface";
 import { GamePreview } from "./components/GamePreview";
+import { gameGenie } from '../lib/gameGenie';
 import { GameConfig, ChatMessage } from '@/app/types';
 import { createInitialMessage, processUserMessage } from '@/app/lib/gameGenie';
 import { Toaster, toast } from 'sonner';
