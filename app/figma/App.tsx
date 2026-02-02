@@ -1,7 +1,8 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { ChatInterface } from '@/app/components/ChatInterface';
-import { GamePreview } from '@/app/components/GamePreview';
+import { ChatInterface } from "./components/ChatInterface";
+import { GamePreview } from "./components/GamePreview";
 import { GameConfig, ChatMessage } from '@/app/types';
 import { createInitialMessage, processUserMessage } from '@/app/lib/gameGenie';
 import { Toaster, toast } from 'sonner';
