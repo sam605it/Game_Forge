@@ -1,7 +1,7 @@
-import "./globals.css";      // REQUIRED
-import "../styles/index.css"; // if exists
+import "../styles/globals.css";
 import "../styles/tailwind.css";
 import "../styles/theme.css";
+
 
 export default function RootLayout({
   children,
