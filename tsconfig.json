@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "target": "ES2020",
-    "lib": ["DOM", "DOM.Iterable", "ES2020"],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -18,7 +18,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules"]
-  "exclude": ["legacy", "legacy/**"]
+  "include": ["app"],
+  "exclude": ["legacy", "node_modules"]
 }
