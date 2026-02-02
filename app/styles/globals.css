@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 🔑 Design tokens required by Forge UI */
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Import your other CSS AFTER Tailwind */
+@import "./theme.css";
+
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background-color: #0a0a0a;
+  color: #e5e7eb;
+}
