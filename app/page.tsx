@@ -1,9 +1,8 @@
-import dynamic from "next/dynamic";
-
-const FigmaApp = dynamic(() => import("./figma/App"), {
-  ssr: false,
-});
-
 export default function Page() {
-  return <FigmaApp />;
+  return (
+    <main className="p-8 text-white">
+      <h1 className="text-3xl font-bold">Game Forge</h1>
+      <p>Build system stabilized ✅</p>
+    </main>
+  );
 }
