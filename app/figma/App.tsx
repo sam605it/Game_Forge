@@ -6,7 +6,7 @@ import { GamePreview } from "./components/GamePreview";
 import { GameConfig, ChatMessage } from '@/app/types';
 import { createInitialMessage, processUserMessage } from '@/app/lib/gameGenie';
 import { Toaster, toast } from 'sonner';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from "framer-motion";
 import { 
   Layers, 
   Box, 
