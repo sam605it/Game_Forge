@@ -1,9 +1,7 @@
-import "./globals.css";
-
-export const metadata = {
-  title: "GameForge",
-  description: "AI-powered mini game creator",
-};
+import "./globals.css";      // REQUIRED
+import "../styles/index.css"; // if exists
+import "../styles/tailwind.css";
+import "../styles/theme.css";
 
 export default function RootLayout({
   children,
@@ -11,8 +9,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-black text-white">
+        {children}
+      </body>
     </html>
   );
 }
