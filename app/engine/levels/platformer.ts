@@ -1,4 +1,4 @@
-import { Level } from "../index";
+import { Level } from "./index";
 
 export function generatePlatformerLevel(game: any): Level {
   return {

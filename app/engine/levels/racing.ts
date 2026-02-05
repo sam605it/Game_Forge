@@ -1,4 +1,4 @@
-import { Level } from "../index";
+import { Level } from "./index";
 
 export function generateRacingLevel(game: any): Level {
   return {

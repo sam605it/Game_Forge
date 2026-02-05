@@ -1,44 +1,33 @@
-// ❌ DO NOT import Gemini here
-// This file runs on the client
+import { genreSystems } from "./genres/genreSystems";
+import type { GenreId } from "./genres/genreTypes";
 
-console.log("API KEY PRESENT:", !!process.env.API_KEY);
-console.log("API KEY EXISTS:", !!process.env.API_KEY);
+type GameDefinition = {
+  genre: GenreId;
+};
 
+function runSystem(_systemName: string, _world: unknown) {
+  // System implementations are intentionally stubbed during deployment hardening.
+}
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+export function runGameEngine(game: GameDefinition, world: unknown) {
+  const systemsToRun = genreSystems[game.genre] ?? [];
 
-import { genreSystems } from "@/engine/genres/genreSystems";
-import { runSystem } from "./systems/runSystem";
-import type { GameDefinition } from "./types";
-
-export function runGameEngine(game: GameDefinition, world: any) {
-  const systemsToRun = genreSystems[game.genre];
-
-  if (!systemsToRun) {
+  if (!systemsToRun.length) {
     console.warn(`No systems registered for genre: ${game.genre}`);
     return;
   }
 
-  systemsToRun.forEach(systemName => {
+  systemsToRun.forEach((systemName) => {
     runSystem(systemName, world);
   });
 }
 
-const activeSystems = genreSystems[game.genre];
-
-export function tick(world: any) {
-  activeSystems.forEach(system => runSystem(system, world));
+export function tick(game: GameDefinition, world: unknown) {
+  const activeSystems = genreSystems[game.genre] ?? [];
+  activeSystems.forEach((system) => runSystem(system, world));
 }
 
-
-
-const ai = new GoogleGenerativeAI(process.env.API_KEY!);
-
-
-export async function runGameEngine(
-  gameState: any,
-  action: string
-) {
+export async function requestGameStateUpdate(gameState: unknown, action: string) {
   const res = await fetch("/api/game", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

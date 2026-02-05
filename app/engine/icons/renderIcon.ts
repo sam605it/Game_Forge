@@ -1,4 +1,6 @@
-import { ICONS, ICON_SIZE } from "./iconRegistry";
+import { ICONS } from "@/app/shared/icons/iconRegistry";
+
+const ICON_SIZE = 64;
 
 export function drawIcon(
   ctx: CanvasRenderingContext2D,
@@ -6,7 +8,7 @@ export function drawIcon(
   iconId: string,
   x: number,
   y: number,
-  size = ICON_SIZE
+  size = ICON_SIZE,
 ) {
   const icon = ICONS[iconId];
   if (!icon) return;
@@ -20,6 +22,6 @@ export function drawIcon(
     x,
     y,
     size,
-    size
+    size,
   );
 }

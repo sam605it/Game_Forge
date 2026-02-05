@@ -1,6 +1,8 @@
 export type GameType = 'snake' | 'clicker' | 'tictactoe' | 'flappy' | null;
 
 export interface GameConfig {
+  title?: string;
+  description?: string;
   type: GameType;
   theme?: 'retro' | 'modern' | 'cyberpunk' | 'forest';
   difficulty?: 'easy' | 'medium' | 'hard';

@@ -19,38 +19,38 @@ export default function UniversalGameRenderer({ gameState }: { gameState: any })
 
   switch (gameState.genre) {
     case "sports":
-      return <SportsRenderer gameState={gameState} />;
+      return <SportsRenderer />;
 
     case "racing":
-      return <RacingRenderer gameState={gameState} />;
+      return <RacingRenderer />;
 
     case "platformer":
-      return <PlatformerRenderer gameState={gameState} />;
+      return <PlatformerRenderer />;
 
     case "puzzle":
     case "educational":
-      return <PuzzleRenderer gameState={gameState} />;
+      return <PuzzleRenderer />;
 
     case "shooter":
-      return <ShooterRenderer gameState={gameState} />;
+      return <ShooterRenderer />;
 
     case "strategy":
-      return <StrategyRenderer gameState={gameState} />;
+      return <StrategyRenderer />;
 
     case "party":
-      return <PartyRenderer gameState={gameState} />;
+      return <PartyRenderer />;
 
     case "simulation":
-      return <SimulationRenderer gameState={gameState} />;
+      return <SimulationRenderer />;
 
     case "rpg":
-      return <RPGRenderer gameState={gameState} />;
+      return <RPGRenderer />;
 
     case "rhythm":
-      return <RhythmRenderer gameState={gameState} />;
+      return <RhythmRenderer />;
 
     case "idle":
-      return <IdleRenderer gameState={gameState} />;
+      return <IdleRenderer />;
 
     default:
       return <div className="p-4">No renderer for genre: {gameState.genre}</div>;

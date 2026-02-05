@@ -1,10 +1,4 @@
-import OpenAI from "openai";
 import { NextResponse } from "next/server";
-
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
 
 const ICONS = {
   bunny: "🐰",
@@ -14,7 +8,9 @@ const ICONS = {
   golf_ball: "⚪",
 };
 
-function pickIconFromText(text: string): keyof typeof ICONS {
+type IconKey = keyof typeof ICONS;
+
+function pickIconFromText(text: string): IconKey {
   const lower = text.toLowerCase();
   if (lower.includes("bunny") || lower.includes("rabbit")) return "bunny";
   if (lower.includes("robot")) return "robot_basic";
@@ -47,52 +43,75 @@ Rules:
 - If unsure, use "golf_ball"
 `;
 
-export async function POST(req: Request) {
-  try {
-    const body = await req.json();
-    const userText = body.action ?? "";
+async function generateWithOpenAI(userText: string) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return null;
 
-    const completion = await openai.chat.completions.create({
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
       model: "gpt-4.1-mini",
       temperature: 0.3,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userText },
       ],
-    });
+    }),
+  });
 
-    const raw = completion.choices[0].message.content;
-    if (!raw) throw new Error("Empty AI response");
+  if (!response.ok) {
+    throw new Error(`OpenAI request failed with status ${response.status}`);
+  }
 
-    let aiJSON: any;
-    try {
-      aiJSON = JSON.parse(raw);
-    } catch {
-      aiJSON = {};
+  const payload = await response.json();
+  return payload?.choices?.[0]?.message?.content as string | undefined;
+}
+
+export async function POST(req: Request) {
+  try {
+    const body = await req.json();
+    const userText = body.action ?? "";
+
+    const raw = await generateWithOpenAI(userText);
+
+    let aiJSON: Record<string, unknown> = {};
+    if (raw) {
+      try {
+        aiJSON = JSON.parse(raw);
+      } catch {
+        aiJSON = {};
+      }
     }
 
-    let playerIcon =
-      typeof aiJSON.playerIcon === "string" && ICONS[aiJSON.playerIcon]
-        ? aiJSON.playerIcon
+    const playerIcon =
+      typeof aiJSON.playerIcon === "string" && aiJSON.playerIcon in ICONS
+        ? (aiJSON.playerIcon as IconKey)
         : pickIconFromText(userText);
 
     return NextResponse.json({
       genre: "sports",
-      themeId: aiJSON.themeId ?? "minigolf",
-      difficulty: aiJSON.difficulty ?? "easy",
+      themeId: typeof aiJSON.themeId === "string" ? aiJSON.themeId : "minigolf",
+      difficulty:
+        aiJSON.difficulty === "easy" ||
+        aiJSON.difficulty === "medium" ||
+        aiJSON.difficulty === "hard"
+          ? aiJSON.difficulty
+          : "easy",
       description:
-        aiJSON.description ??
-        "Play a fun mini golf game featuring a character.",
+        typeof aiJSON.description === "string"
+          ? aiJSON.description
+          : "Play a fun mini golf game featuring a character.",
       playerIcon,
     });
   } catch (err) {
     console.error("GAME API ERROR:", err);
     return NextResponse.json(
       { error: "Invalid game output" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-
-
-
