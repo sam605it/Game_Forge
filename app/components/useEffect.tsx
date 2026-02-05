@@ -1,24 +1,15 @@
-let ball = { x: hole.start.x, y: hole.start.y, vx: 0, vy: 0 }
+"use client";
 
-canvas.onclick = (e) => {
-  const dx = e.offsetX - ball.x
-  const dy = e.offsetY - ball.y
-  ball.vx = dx * 0.05
-  ball.vy = dy * 0.05
+import { useEffect } from "react";
+
+/**
+ * Temporary no-op effect wrapper used to preserve import compatibility
+ * while deployment blockers are fixed.
+ */
+export default function UseEffectNoop() {
+  useEffect(() => {
+    // Intentionally empty.
+  }, []);
+
+  return null;
 }
-
-setInterval(() => {
-  ball.x += ball.vx
-  ball.y += ball.vy
-  ball.vx *= 0.98
-  ball.vy *= 0.98
-}, 16)
-
-const renderers = {
-  miniGolf: MiniGolfRenderer,
-  platformer: PlatformerRenderer,
-  shooter: ShooterRenderer,
-}
-
-const Renderer = renderers[game.type]
-return <Renderer game={game} />

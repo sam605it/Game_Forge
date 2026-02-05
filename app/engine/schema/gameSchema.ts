@@ -1,6 +1,4 @@
-import { z } from "zod";
-
-export const GenreEnum = z.enum([
+export const GENRES = [
   "sports",
   "racing",
   "platformer",
@@ -13,31 +11,33 @@ export const GenreEnum = z.enum([
   "rhythm",
   "educational",
   "idle",
-]);
+] as const;
 
-export const DifficultyEnum = z.enum([
-  "easy",
-  "medium",
-  "hard",
-]);
+export const DIFFICULTIES = ["easy", "medium", "hard"] as const;
 
-export const GameSchema = z.object({
-  genre: GenreEnum,
+export type GameState = {
+  genre: (typeof GENRES)[number];
+  themeId: string;
+  playerIcon: string;
+  difficulty?: (typeof DIFFICULTIES)[number];
+  description?: string;
+  modifiers?: {
+    gravity?: number;
+    friction?: number;
+    speed?: number;
+  };
+};
 
-  themeId: z.string(),
+export function isGameState(raw: unknown): raw is GameState {
+  if (!raw || typeof raw !== "object") return false;
+  const candidate = raw as Record<string, unknown>;
 
-  playerIcon: z.string(),
-
-  difficulty: DifficultyEnum.optional().default("easy"),
-
-  description: z.string().optional(),
-
-  // Optional modifiers the AI may include
-  modifiers: z.object({
-    gravity: z.number().optional(),
-    friction: z.number().optional(),
-    speed: z.number().optional(),
-  }).optional(),
-});
-
-export type GameState = z.infer<typeof GameSchema>;
+  return (
+    typeof candidate.genre === "string" &&
+    GENRES.includes(candidate.genre as (typeof GENRES)[number]) &&
+    typeof candidate.themeId === "string" &&
+    typeof candidate.playerIcon === "string" &&
+    (candidate.difficulty === undefined ||
+      DIFFICULTIES.includes(candidate.difficulty as (typeof DIFFICULTIES)[number]))
+  );
+}

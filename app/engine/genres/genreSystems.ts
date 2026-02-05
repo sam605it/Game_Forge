@@ -1,6 +1,6 @@
-import { Genre } from "./genreTypes";
+import type { GenreId } from "./genreTypes";
 
-export const genreSystems: Record<Genre, string[]> = {
+export const genreSystems: Record<GenreId, string[]> = {
   sports: ["physics", "collision", "score", "timer"],
   racing: ["physics", "lap", "collision", "cameraFollow"],
   platformer: ["gravity", "collision", "jump", "cameraFollow"],

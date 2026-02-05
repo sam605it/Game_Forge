@@ -25,6 +25,7 @@ export function processUserMessage(
 
   if (!currentConfig) {
     gameConfig = {
+      type: "snake",
       title: text,
       description: `A game based on: ${text}`,
     };

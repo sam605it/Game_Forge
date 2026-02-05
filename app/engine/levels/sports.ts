@@ -1,4 +1,4 @@
-import { Level } from "../index";
+import { Level } from "./index";
 
 export function generateSportsLevel(game: any): Level {
   const width = 800;

@@ -1,3 +1,7 @@
+import { generatePlatformerLevel } from "./platformer";
+import { generateRacingLevel } from "./racing";
+import { generateSportsLevel } from "./sports";
+
 export type Level = {
   world: {
     width: number;
@@ -6,30 +10,22 @@ export type Level = {
   entities: any[];
 };
 
-import { generateSportsLevel } from "./generators/sports";
-import { generatePlatformerLevel } from "./generators/platformer";
-import { generateRacingLevel } from "./generators/racing";
-import { generatePuzzleLevel } from "./generators/puzzle";
-import { generateShooterLevel } from "./generators/shooter";
-import { generateStrategyLevel } from "./generators/strategy";
-import { generatePartyLevel } from "./generators/party";
-import { generateSimulationLevel } from "./generators/simulation";
-import { generateRPGLevel } from "./generators/rpg";
-import { generateRhythmLevel } from "./generators/rhythm";
-import { generateEducationalLevel } from "./generators/educational";
-import { generateIdleLevel } from "./generators/idle";
+const fallbackLevel = (): Level => ({
+  world: { width: 800, height: 450 },
+  entities: [],
+});
 
-export const LEVEL_GENERATORS: Record<string, Function> = {
+export const LEVEL_GENERATORS: Record<string, (game: any) => Level> = {
   sports: generateSportsLevel,
   platformer: generatePlatformerLevel,
   racing: generateRacingLevel,
-  puzzle: generatePuzzleLevel,
-  shooter: generateShooterLevel,
-  strategy: generateStrategyLevel,
-  party: generatePartyLevel,
-  simulation: generateSimulationLevel,
-  rpg: generateRPGLevel,
-  rhythm: generateRhythmLevel,
-  educational: generateEducationalLevel,
-  idle: generateIdleLevel,
+  puzzle: fallbackLevel,
+  shooter: fallbackLevel,
+  strategy: fallbackLevel,
+  party: fallbackLevel,
+  simulation: fallbackLevel,
+  rpg: fallbackLevel,
+  rhythm: fallbackLevel,
+  educational: fallbackLevel,
+  idle: fallbackLevel,
 };
