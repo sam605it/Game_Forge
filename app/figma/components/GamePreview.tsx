@@ -1,21 +1,9 @@
-'use client';
+"use client";
 
-import { GameConfig } from '@/app/types';
-
-export function GamePreview({
-  config,
-  isDarkMode,
-}: {
-  config?: GameConfig;
-  isDarkMode: boolean;
-}) {
+export default function GamePreviewCard() {
   return (
-    <div
-      className={`w-full h-full flex items-center justify-center text-sm ${
-        isDarkMode ? 'text-slate-400' : 'text-slate-600'
-      }`}
-    >
-      No game selected yet.
+    <div style={{ padding: 20, color: "white" }}>
+      GamePreview OK
     </div>
   );
 }

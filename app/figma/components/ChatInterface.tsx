@@ -1,73 +1,44 @@
-import React from "react";
+"use client";
 
-export type ChatMessage = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-};
+import { ChatMessage } from "@/app/types";
 
-type ChatInterfaceProps = {
+interface Props {
   messages: ChatMessage[];
+  isTyping?: boolean;
   onSendMessage: (text: string) => void;
-  isTyping: boolean;
-  isDarkMode: boolean;
-};
+}
 
-export function ChatInterface({
-  messages,
+export default function ChatInterface({
+  messages = [],
+  isTyping = false,
   onSendMessage,
-  isTyping,
-  isDarkMode,
-}: ChatInterfaceProps) {
+}: Props) {
   return (
-    <div className="flex flex-col h-full p-4">
-      <div className="flex-1 overflow-y-auto space-y-3">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`text-sm ${
-              msg.role === "user" ? "text-right" : "text-left"
-            }`}
-          >
-            <span
-              className={`inline-block px-3 py-2 rounded-lg ${
-                msg.role === "user"
-                  ? "bg-blue-600 text-white"
-                  : "bg-slate-700 text-white"
-              }`}
-            >
-              {msg.content}
-            </span>
+    <div className="h-full flex flex-col">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.map((m) => (
+          <div key={m.id} className="text-sm">
+            <b className="capitalize">{m.role}:</b> {m.content}
           </div>
         ))}
+
         {isTyping && (
-          <div className="text-xs text-slate-400">Typing…</div>
+          <div className="text-xs opacity-50">GameGenie is thinking…</div>
         )}
       </div>
 
-      <form
-        className="mt-4 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const input = e.currentTarget.message as HTMLInputElement;
-          if (input.value.trim()) {
-            onSendMessage(input.value);
-            input.value = "";
-          }
-        }}
-      >
+      <div className="border-t p-3">
         <input
-          name="message"
-          placeholder="Type a message…"
-          className="flex-1 rounded px-3 py-2 bg-slate-800 text-white text-sm"
+          className="w-full rounded border px-3 py-2 text-black"
+          placeholder="Describe a game or action…"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && e.currentTarget.value.trim()) {
+              onSendMessage(e.currentTarget.value);
+              e.currentTarget.value = "";
+            }
+          }}
         />
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded text-sm"
-        >
-          Send
-        </button>
-      </form>
+      </div>
     </div>
   );
 }
