@@ -1,0 +1,104 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "title": "Bunny Mini Golf",
+    "category": "sports",
+    "template": "physics_2d",
+    "mechanics": ["drag_shot", "gravity", "collisions", "goal_trigger", "decor_scatter"],
+    "seed": 42,
+    "platform": "web"
+  },
+  "world": {
+    "physics": {
+      "gravity": [0, 240],
+      "friction": 0.03,
+      "restitution": 0.45,
+      "timeStep": 0.016
+    },
+    "camera": {
+      "mode": "static"
+    }
+  },
+  "entities": [
+    {
+      "id": "bunny_ball",
+      "kind": "ball",
+      "tags": ["player", "bunny"],
+      "components": {
+        "Transform": { "pos": [80, 170] },
+        "Sprite": { "ref": "bunny_ball" },
+        "RigidBody": { "type": "dynamic", "mass": 1 },
+        "CircleCollider": { "radius": 12 },
+        "InputController": { "scheme": "drag_shot" },
+        "Scoring": { "start": 0 }
+      }
+    },
+    {
+      "id": "hole_goal",
+      "kind": "goal",
+      "components": {
+        "Transform": { "pos": [680, 180] },
+        "CircleCollider": { "radius": 16, "isTrigger": true },
+        "Goal": { "type": "enter_trigger", "target": "bunny_ball" }
+      }
+    },
+    {
+      "id": "tree_spawner",
+      "kind": "decor_spawner",
+      "components": {
+        "Spawner": {
+          "kind": "scatter",
+          "targetKind": "tree",
+          "count": 50,
+          "area": { "min": [100, 40], "max": [720, 300] },
+          "avoid": [{ "entity": "hole_goal", "radius": 50 }],
+          "components": {
+            "Sprite": { "ref": "tree" },
+            "BoxCollider": { "size": [18, 18], "isTrigger": false }
+          }
+        }
+      }
+    }
+  ],
+  "components": {
+    "supported": [
+      "Transform",
+      "Sprite",
+      "RigidBody",
+      "CircleCollider",
+      "BoxCollider",
+      "InputController",
+      "AudioEmitter",
+      "Goal",
+      "Scoring",
+      "Spawner"
+    ]
+  },
+  "rules": [
+    {
+      "when": { "event": "GoalReached", "entity": "hole_goal" },
+      "do": [
+        { "action": "PlaySound", "sound": "goal_chime", "volume": 0.8 },
+        { "action": "AddScore", "amount": 100 },
+        { "action": "EndRound", "result": "win" }
+      ]
+    }
+  ],
+  "assets": {
+    "sprites": {
+      "bunny_ball": "sprite:bunny_ball",
+      "tree": "sprite:tree_decor",
+      "hole": "sprite:golf_hole"
+    },
+    "sounds": {
+      "goal_chime": "sfx:goal_01"
+    }
+  },
+  "constraints": {
+    "maxEntities": 200,
+    "maxSounds": 16,
+    "targetFPS": 60,
+    "maxRules": 32,
+    "maxParticles": 200
+  }
+}
