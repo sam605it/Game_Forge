@@ -3,6 +3,7 @@ import { parseGameSpecV1 } from "@/app/gamespec/guards";
 import { CATEGORIES, type Category } from "@/app/gamespec/types";
 
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 type GenerateRequest = {
   prompt?: string;
@@ -64,6 +65,54 @@ async function callOpenAI(messages: Array<{ role: "system" | "user"; content: st
   return { ok: true as const, content };
 }
 
+async function callGemini(messages: Array<{ role: "system" | "user"; content: string }>) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    return { ok: false as const, errors: ["GEMINI_API_KEY is not set."] };
+  }
+
+  const combinedPrompt = messages
+    .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
+    .join("\n\n");
+
+  const response = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: combinedPrompt }] }],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    return {
+      ok: false as const,
+      errors: [`Gemini request failed (${response.status}): ${errText.slice(0, 400)}`],
+    };
+  }
+
+  const payload = await response.json();
+  const content = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (typeof content !== "string") {
+    return { ok: false as const, errors: ["Gemini returned an empty response."] };
+  }
+
+  return { ok: true as const, content };
+}
+
+async function callModel(messages: Array<{ role: "system" | "user"; content: string }>) {
+  if (process.env.GEMINI_API_KEY) {
+    return callGemini(messages);
+  }
+
+  return callOpenAI(messages);
+}
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as GenerateRequest;
@@ -88,7 +137,7 @@ If not obvious, use category hint.
 If still unsure, default to sports.
 Return only JSON.`;
 
-    const first = await callOpenAI([
+    const first = await callModel([
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userInstruction },
     ]);
@@ -115,7 +164,7 @@ Validation errors:\n- ${validationErrors.join("\n- ")}
 
 Return corrected JSON only.`;
 
-    const second = await callOpenAI([
+    const second = await callModel([
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: `${userInstruction}\n\nOriginal JSON:\n${JSON.stringify(parsed)}` },
       { role: "user", content: repairPrompt },
