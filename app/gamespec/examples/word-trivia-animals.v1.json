@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Animal Trivia Quiz",
+    "category": "word_trivia",
+    "template": "grid_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "question",
+      "choices",
+      "timer"
     ],
     "seed": 42,
     "platform": "web"
@@ -23,13 +23,13 @@
       "timeStep": 0.016
     },
     "camera": {
-      "mode": "topdown"
+      "mode": "static"
     }
   },
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -78,24 +78,6 @@
         "Goal": {
           "type": "enter_trigger",
           "target": "player_1"
-        }
-      }
-    },
-    {
-      "id": "pin_1",
-      "kind": "pin",
-      "components": {
-        "Transform": {
-          "pos": [
-            620,
-            140
-          ]
-        },
-        "CircleCollider": {
-          "radius": 8
-        },
-        "RigidBody": {
-          "type": "dynamic"
         }
       }
     }

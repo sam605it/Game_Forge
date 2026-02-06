@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Desert Kart Time Trial",
+    "category": "racing",
+    "template": "topdown_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "steer",
+      "lap_or_finish",
+      "obstacles"
     ],
     "seed": 42,
     "platform": "web"
@@ -29,7 +29,7 @@
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "car",
       "tags": [
         "player"
       ],
@@ -82,20 +82,25 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "finish_1",
+      "kind": "finish",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            700,
+            160
           ]
         },
-        "CircleCollider": {
-          "radius": 8
+        "BoxCollider": {
+          "size": [
+            12,
+            80
+          ],
+          "isTrigger": true
         },
-        "RigidBody": {
-          "type": "dynamic"
+        "Goal": {
+          "type": "enter_trigger",
+          "target": "player_1"
         }
       }
     }

@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Dodge Meteors Survive",
+    "category": "action",
+    "template": "topdown_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "dodge",
+      "survive_timer",
+      "hazard_spawn"
     ],
     "seed": 42,
     "platform": "web"
@@ -29,7 +29,7 @@
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -82,20 +82,17 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "hazard_1",
+      "kind": "hazard",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            560,
+            120
           ]
         },
         "CircleCollider": {
-          "radius": 8
-        },
-        "RigidBody": {
-          "type": "dynamic"
+          "radius": 12
         }
       }
     }

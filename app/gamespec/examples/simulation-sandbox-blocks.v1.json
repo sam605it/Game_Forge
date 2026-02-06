@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
+    "title": "Physics Sandbox Stack Blocks",
+    "category": "simulation",
     "template": "physics_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "spawn",
+      "physics_interact",
+      "sandbox"
     ],
     "seed": 42,
     "platform": "web"
@@ -16,20 +16,20 @@
     "physics": {
       "gravity": [
         0,
-        0
+        220
       ],
       "friction": 0.03,
       "restitution": 0.3,
       "timeStep": 0.016
     },
     "camera": {
-      "mode": "topdown"
+      "mode": "static"
     }
   },
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -82,17 +82,20 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "block_1",
+      "kind": "object",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            320,
+            120
           ]
         },
-        "CircleCollider": {
-          "radius": 8
+        "BoxCollider": {
+          "size": [
+            28,
+            28
+          ]
         },
         "RigidBody": {
           "type": "dynamic"

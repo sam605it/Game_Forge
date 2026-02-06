@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { CATEGORIES, type Category, type GameSpecV1 } from "@/app/gamespec/types";
 import { renderSpec } from "@/app/engine/spec/renderSpec";
+import { CATEGORY_EXAMPLES } from "@/app/gamespec/examples";
+import { applyCategoryPreset } from "@/app/gamespec/presets";
 
 export default function GameSpecDevPage() {
   const [prompt, setPrompt] = useState("Make mini golf with a bunny and lots of tree decorations.");
@@ -25,7 +27,7 @@ export default function GameSpecDevPage() {
         setError((data.errors || ["Failed to generate"]).join(", "));
         setSpec(null);
       } else {
-        setSpec(data.spec);
+        setSpec(applyCategoryPreset(data.spec));
       }
     } catch {
       setError("Request failed.");
@@ -34,6 +36,17 @@ export default function GameSpecDevPage() {
       setLoading(false);
     }
   };
+
+  const smokeResults = useMemo(() => {
+    return CATEGORIES.map((category) => {
+      try {
+        const normalized = applyCategoryPreset(CATEGORY_EXAMPLES[category]);
+        return { category, ok: !!renderSpec(normalized) };
+      } catch {
+        return { category, ok: false };
+      }
+    });
+  }, []);
 
   return (
     <main className="min-h-screen bg-slate-950 p-6 text-slate-100">
@@ -68,6 +81,29 @@ export default function GameSpecDevPage() {
           </button>
         </div>
       </div>
+
+      <section className="mb-4 rounded border border-slate-700 bg-slate-900/40 p-3">
+        <h2 className="mb-2 text-sm font-semibold">Golden Example Quick Load</h2>
+        <div className="flex flex-wrap gap-2">
+          {CATEGORIES.map((category) => (
+            <button
+              key={category}
+              className="rounded bg-slate-800 px-2 py-1 text-xs hover:bg-slate-700"
+              onClick={() => {
+                setCategoryHint(category);
+                setPrompt(CATEGORY_EXAMPLES[category].metadata.title);
+                setSpec(applyCategoryPreset(CATEGORY_EXAMPLES[category]));
+                setError(null);
+              }}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-slate-300">
+          Smoke check: {smokeResults.filter((r) => r.ok).length}/{smokeResults.length} categories renderable.
+        </p>
+      </section>
 
       {error && <p className="mb-4 text-red-400">{error}</p>}
 
