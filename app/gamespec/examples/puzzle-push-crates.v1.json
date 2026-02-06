@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Push Crates To Goal",
+    "category": "puzzle",
+    "template": "grid_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "grid_move",
+      "block_push",
+      "goal_tiles"
     ],
     "seed": 42,
     "platform": "web"
@@ -23,13 +23,13 @@
       "timeStep": 0.016
     },
     "camera": {
-      "mode": "topdown"
+      "mode": "static"
     }
   },
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -82,17 +82,20 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "crate_1",
+      "kind": "crate",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            240,
+            160
           ]
         },
-        "CircleCollider": {
-          "radius": 8
+        "BoxCollider": {
+          "size": [
+            20,
+            20
+          ]
         },
         "RigidBody": {
           "type": "dynamic"

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
+
 const fallbackBlueprint = {
   title: "Fallback Game",
   genre: "Arcade",
@@ -13,8 +15,13 @@ const fallbackBlueprint = {
   winCondition: "Player score > 0",
 };
 
-async function generateWithGemini(message: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
+const safeJsonParse = (text: string): unknown => {
+  const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "");
+  return JSON.parse(cleaned);
+};
+
+async function generateWithOpenAI(message: string) {
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return null;
 
   const prompt = `
@@ -48,36 +55,45 @@ User input:
 `;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    OPENAI_ENDPOINT,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
+        model: "gpt-4o-mini",
+        temperature: 0.2,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: "You generate valid JSON only." },
+          { role: "user", content: prompt },
+        ],
       }),
     },
   );
 
   if (!response.ok) {
-    throw new Error(`Gemini request failed with status ${response.status}`);
+    throw new Error(`OpenAI request failed with status ${response.status}`);
   }
 
   const payload = await response.json();
-  const text = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = payload?.choices?.[0]?.message?.content;
   return typeof text === "string" ? text : null;
 }
 
 export async function POST(req: Request) {
   try {
     const { message } = await req.json();
-    const text = await generateWithGemini(message ?? "");
+    const text = await generateWithOpenAI(message ?? "");
 
     if (!text) {
       return NextResponse.json(fallbackBlueprint);
     }
 
     try {
-      const blueprint = JSON.parse(text);
+      const blueprint = safeJsonParse(text);
       return NextResponse.json(blueprint);
     } catch {
       return NextResponse.json(fallbackBlueprint);

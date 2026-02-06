@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Space Arena Survival",
+    "category": "shooter",
+    "template": "topdown_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "aim",
+      "projectiles",
+      "enemy_spawn"
     ],
     "seed": 42,
     "platform": "web"
@@ -29,7 +29,7 @@
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -82,17 +82,17 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "enemy_1",
+      "kind": "enemy",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            540,
+            130
           ]
         },
         "CircleCollider": {
-          "radius": 8
+          "radius": 11
         },
         "RigidBody": {
           "type": "dynamic"

@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Coin Collect Score Chase",
+    "category": "arcade",
+    "template": "topdown_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "collect",
+      "avoid",
+      "timer"
     ],
     "seed": 42,
     "platform": "web"
@@ -29,7 +29,7 @@
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -82,20 +82,21 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "coin_1",
+      "kind": "coin",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            560,
+            120
           ]
         },
         "CircleCollider": {
           "radius": 8
         },
-        "RigidBody": {
-          "type": "dynamic"
+        "Goal": {
+          "type": "score_target",
+          "value": 1
         }
       }
     }

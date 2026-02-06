@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { parseGameSpecV1 } from "@/app/gamespec/guards";
-import { CATEGORIES, type Category } from "@/app/gamespec/types";
+import { CATEGORIES, type Category, type GameSpecV1 } from "@/app/gamespec/types";
+import { CATEGORY_EXAMPLES } from "@/app/gamespec/examples";
+import { PLAYBOOK_SUMMARY } from "@/app/gamespec/playbooks";
+import { applyCategoryPreset } from "@/app/gamespec/presets";
 
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
-const GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
 type GenerateRequest = {
   prompt?: string;
@@ -12,25 +14,62 @@ type GenerateRequest = {
 };
 
 const SYSTEM_PROMPT = `You generate GameSpec v1 JSON only.
-Return only strict JSON with no markdown.
-Include exactly these top-level sections: metadata, world, entities, components, rules, assets, constraints.
+Return strict JSON with no markdown.
+You MUST choose exactly 1 category from: sports,puzzle,arcade,action,racing,platforming,shooter,strategy,simulation,rhythm_music,word_trivia,party_social.
+You MUST include non-empty mechanics and make the game feel recognizable for that category.
+Include exactly top-level sections: metadata, world, entities, components, rules, assets, constraints.
 metadata.version must be "1.0".
-metadata.category must be one of: sports,puzzle,arcade,action,racing,platforming,shooter,strategy,simulation,rhythm_music,word_trivia,party_social.
-metadata.mechanics must be a non-empty array of strings.
 Always include at least one controllable entity with InputController.
 Always include at least one Goal + at least one rule that can end a round.
 assets values must be placeholder IDs like sprite:foo and sfx:foo.
-`;
+
+Category Playbook Summary:
+${PLAYBOOK_SUMMARY}`;
 
 const safeJsonParse = (text: string): unknown => {
   const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "");
   return JSON.parse(cleaned);
 };
 
+const buildFallbackSpec = (categoryHint: Category, prompt: string): GameSpecV1 => {
+  const lower = prompt.toLowerCase();
+  const inferredCategory: Category = lower.includes("race")
+    ? "racing"
+    : lower.includes("shoot")
+      ? "shooter"
+      : lower.includes("platform") || lower.includes("jump")
+        ? "platforming"
+        : lower.includes("puzzle")
+          ? "puzzle"
+          : lower.includes("rhythm") || lower.includes("beat")
+            ? "rhythm_music"
+            : lower.includes("trivia") || lower.includes("quiz")
+              ? "word_trivia"
+              : lower.includes("tower") || lower.includes("strategy")
+                ? "strategy"
+                : lower.includes("sim") || lower.includes("sandbox")
+                  ? "simulation"
+                  : lower.includes("arcade") || lower.includes("coin")
+                    ? "arcade"
+                    : lower.includes("action") || lower.includes("dodge")
+                      ? "action"
+                      : lower.includes("party") || lower.includes("tag")
+                        ? "party_social"
+                        : lower.includes("golf") || lower.includes("sport")
+                          ? "sports"
+                          : categoryHint;
+
+  const base = CATEGORY_EXAMPLES[inferredCategory] ?? CATEGORY_EXAMPLES[categoryHint];
+  return applyCategoryPreset({
+    ...base,
+    metadata: { ...base.metadata, title: `${base.metadata.title} (fallback)` },
+  });
+};
+
 async function callOpenAI(messages: Array<{ role: "system" | "user"; content: string }>) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return { ok: false as const, errors: ["OPENAI_API_KEY is not set."] };
+    return { ok: false as const, errors: ["OPENAI_API_KEY is not set."], missingApiKey: true };
   }
 
   const response = await fetch(OPENAI_ENDPOINT, {
@@ -52,6 +91,7 @@ async function callOpenAI(messages: Array<{ role: "system" | "user"; content: st
     return {
       ok: false as const,
       errors: [`OpenAI request failed (${response.status}): ${errText.slice(0, 400)}`],
+      missingApiKey: false,
     };
   }
 
@@ -59,58 +99,16 @@ async function callOpenAI(messages: Array<{ role: "system" | "user"; content: st
   const content = payload?.choices?.[0]?.message?.content;
 
   if (typeof content !== "string") {
-    return { ok: false as const, errors: ["OpenAI returned an empty response."] };
+    return { ok: false as const, errors: ["OpenAI returned an empty response."], missingApiKey: false };
   }
 
   return { ok: true as const, content };
 }
 
-async function callGemini(messages: Array<{ role: "system" | "user"; content: string }>) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return { ok: false as const, errors: ["GEMINI_API_KEY is not set."] };
-  }
-
-  const combinedPrompt = messages
-    .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
-    .join("\n\n");
-
-  const response = await fetch(`${GEMINI_ENDPOINT}?key=${apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: combinedPrompt }] }],
-      generationConfig: {
-        temperature: 0.2,
-        responseMimeType: "application/json",
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    return {
-      ok: false as const,
-      errors: [`Gemini request failed (${response.status}): ${errText.slice(0, 400)}`],
-    };
-  }
-
-  const payload = await response.json();
-  const content = payload?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (typeof content !== "string") {
-    return { ok: false as const, errors: ["Gemini returned an empty response."] };
-  }
-
-  return { ok: true as const, content };
-}
-
-async function callModel(messages: Array<{ role: "system" | "user"; content: string }>) {
-  if (process.env.GEMINI_API_KEY) {
-    return callGemini(messages);
-  }
-
-  return callOpenAI(messages);
+function parseAndNormalize(candidate: unknown) {
+  const validated = parseGameSpecV1(candidate);
+  if (validated.ok !== true) return validated;
+  return { ok: true as const, value: applyCategoryPreset(validated.value) };
 }
 
 export async function POST(request: Request) {
@@ -131,18 +129,17 @@ export async function POST(request: Request) {
     const userInstruction = `User prompt: ${prompt}
 Category hint: ${categoryHint}
 Seed: ${typeof body.seed === "number" ? body.seed : "none"}
+Return only JSON for one category-specific, recognizable minigame.`;
 
-If category is obvious from prompt, infer it.
-If not obvious, use category hint.
-If still unsure, default to sports.
-Return only JSON.`;
-
-    const first = await callModel([
+    const first = await callOpenAI([
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userInstruction },
     ]);
 
     if (!first.ok) {
+      if (first.missingApiKey) {
+        return NextResponse.json({ ok: true, spec: buildFallbackSpec(categoryHint, prompt), fallback: true });
+      }
       return NextResponse.json({ ok: false, errors: first.errors }, { status: 500 });
     }
 
@@ -153,18 +150,17 @@ Return only JSON.`;
       return NextResponse.json({ ok: false, errors: ["Model response was not valid JSON."] }, { status: 422 });
     }
 
-    const validated = parseGameSpecV1(parsed);
-    if (validated.ok === true) {
-      return NextResponse.json({ ok: true, spec: validated.value });
+    const normalized = parseAndNormalize(parsed);
+    if (normalized.ok === true) {
+      return NextResponse.json({ ok: true, spec: normalized.value });
     }
 
-    const validationErrors = validated.errors;
     const repairPrompt = `Fix this JSON so it passes GameSpec v1 validation.
-Validation errors:\n- ${validationErrors.join("\n- ")}
-
+Validation errors:\n- ${normalized.errors.join("\n- ")}
+Ensure recognizability for the selected category according to playbook summary.
 Return corrected JSON only.`;
 
-    const second = await callModel([
+    const second = await callOpenAI([
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: `${userInstruction}\n\nOriginal JSON:\n${JSON.stringify(parsed)}` },
       { role: "user", content: repairPrompt },
@@ -176,20 +172,13 @@ Return corrected JSON only.`;
 
     try {
       const repaired = safeJsonParse(second.content);
-      const repairedValidated = parseGameSpecV1(repaired);
-      if (repairedValidated.ok === true) {
-        return NextResponse.json({ ok: true, spec: repairedValidated.value });
+      const repairedNormalized = parseAndNormalize(repaired);
+      if (repairedNormalized.ok === true) {
+        return NextResponse.json({ ok: true, spec: repairedNormalized.value });
       }
-
-      return NextResponse.json(
-        { ok: false, errors: repairedValidated.errors },
-        { status: 422 },
-      );
+      return NextResponse.json({ ok: false, errors: repairedNormalized.errors }, { status: 422 });
     } catch {
-      return NextResponse.json(
-        { ok: false, errors: ["Repair response was not valid JSON."] },
-        { status: 422 },
-      );
+      return NextResponse.json({ ok: false, errors: ["Repair response was not valid JSON."] }, { status: 422 });
     }
   } catch {
     return NextResponse.json({ ok: false, errors: ["Unexpected server error."] }, { status: 500 });

@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Tiny Tower Defense",
+    "category": "strategy",
+    "template": "topdown_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "path_enemies",
+      "tower_place",
+      "auto_attack"
     ],
     "seed": 42,
     "platform": "web"
@@ -29,7 +29,7 @@
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -82,20 +82,20 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "path_1",
+      "kind": "path",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            380,
+            160
           ]
         },
-        "CircleCollider": {
-          "radius": 8
-        },
-        "RigidBody": {
-          "type": "dynamic"
+        "BoxCollider": {
+          "size": [
+            560,
+            40
+          ]
         }
       }
     }

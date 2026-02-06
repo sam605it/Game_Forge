@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Forest Jump To Exit",
+    "category": "platforming",
+    "template": "platformer_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "jump",
+      "run",
+      "goal_reach"
     ],
     "seed": 42,
     "platform": "web"
@@ -16,20 +16,20 @@
     "physics": {
       "gravity": [
         0,
-        0
+        340
       ],
       "friction": 0.03,
       "restitution": 0.3,
       "timeStep": 0.016
     },
     "camera": {
-      "mode": "topdown"
+      "mode": "follow"
     }
   },
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -82,20 +82,23 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "platform_1",
+      "kind": "platform",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            240,
+            220
           ]
         },
-        "CircleCollider": {
-          "radius": 8
+        "BoxCollider": {
+          "size": [
+            120,
+            20
+          ]
         },
         "RigidBody": {
-          "type": "dynamic"
+          "type": "static"
         }
       }
     }

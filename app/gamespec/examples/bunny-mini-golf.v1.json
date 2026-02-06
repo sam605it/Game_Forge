@@ -4,58 +4,102 @@
     "title": "Bunny Mini Golf",
     "category": "sports",
     "template": "physics_2d",
-    "mechanics": ["drag_shot", "gravity", "collisions", "goal_trigger", "decor_scatter"],
+    "mechanics": [
+      "drag_shot",
+      "collisions",
+      "goal_trigger",
+      "decor_scatter"
+    ],
     "seed": 42,
     "platform": "web"
   },
   "world": {
     "physics": {
-      "gravity": [0, 240],
+      "gravity": [
+        0,
+        0
+      ],
       "friction": 0.03,
-      "restitution": 0.45,
+      "restitution": 0.3,
       "timeStep": 0.016
     },
     "camera": {
-      "mode": "static"
+      "mode": "topdown"
     }
   },
   "entities": [
     {
-      "id": "bunny_ball",
+      "id": "player_1",
       "kind": "ball",
-      "tags": ["player", "bunny"],
+      "tags": [
+        "player"
+      ],
       "components": {
-        "Transform": { "pos": [80, 170] },
-        "Sprite": { "ref": "bunny_ball" },
-        "RigidBody": { "type": "dynamic", "mass": 1 },
-        "CircleCollider": { "radius": 12 },
-        "InputController": { "scheme": "drag_shot" },
-        "Scoring": { "start": 0 }
+        "Transform": {
+          "pos": [
+            80,
+            160
+          ]
+        },
+        "Sprite": {
+          "ref": "player"
+        },
+        "RigidBody": {
+          "type": "dynamic",
+          "mass": 1
+        },
+        "CircleCollider": {
+          "radius": 10
+        },
+        "InputController": {
+          "scheme": "wasd"
+        },
+        "Scoring": {
+          "start": 0
+        }
       }
     },
     {
-      "id": "hole_goal",
+      "id": "goal_1",
       "kind": "goal",
       "components": {
-        "Transform": { "pos": [680, 180] },
-        "CircleCollider": { "radius": 16, "isTrigger": true },
-        "Goal": { "type": "enter_trigger", "target": "bunny_ball" }
+        "Transform": {
+          "pos": [
+            680,
+            160
+          ]
+        },
+        "Sprite": {
+          "ref": "goal"
+        },
+        "CircleCollider": {
+          "radius": 16,
+          "isTrigger": true
+        },
+        "Goal": {
+          "type": "enter_trigger",
+          "target": "player_1"
+        }
       }
     },
     {
       "id": "tree_spawner",
-      "kind": "decor_spawner",
+      "kind": "obstacle",
       "components": {
-        "Spawner": {
-          "kind": "scatter",
-          "targetKind": "tree",
-          "count": 50,
-          "area": { "min": [100, 40], "max": [720, 300] },
-          "avoid": [{ "entity": "hole_goal", "radius": 50 }],
-          "components": {
-            "Sprite": { "ref": "tree" },
-            "BoxCollider": { "size": [18, 18], "isTrigger": false }
-          }
+        "Transform": {
+          "pos": [
+            360,
+            160
+          ]
+        },
+        "BoxCollider": {
+          "size": [
+            30,
+            30
+          ]
+        },
+        "Sprite": {
+          "ref": "tree"
         }
       }
     }
@@ -76,29 +120,36 @@
   },
   "rules": [
     {
-      "when": { "event": "GoalReached", "entity": "hole_goal" },
+      "when": {
+        "event": "GoalReached",
+        "entity": "goal_1"
+      },
       "do": [
-        { "action": "PlaySound", "sound": "goal_chime", "volume": 0.8 },
-        { "action": "AddScore", "amount": 100 },
-        { "action": "EndRound", "result": "win" }
+        {
+          "action": "AddScore",
+          "amount": 100
+        },
+        {
+          "action": "EndRound",
+          "result": "win"
+        }
       ]
     }
   ],
   "assets": {
     "sprites": {
-      "bunny_ball": "sprite:bunny_ball",
-      "tree": "sprite:tree_decor",
-      "hole": "sprite:golf_hole"
+      "player": "sprite:player",
+      "goal": "sprite:goal"
     },
     "sounds": {
-      "goal_chime": "sfx:goal_01"
+      "goal": "sfx:goal"
     }
   },
   "constraints": {
     "maxEntities": 200,
     "maxSounds": 16,
     "targetFPS": 60,
-    "maxRules": 32,
+    "maxRules": 64,
     "maxParticles": 200
   }
 }

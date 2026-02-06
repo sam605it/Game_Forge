@@ -1,13 +1,13 @@
 {
   "metadata": {
     "version": "1.0",
-    "title": "Tiger Bowling",
-    "category": "sports",
-    "template": "physics_2d",
+    "title": "Party Tag Round",
+    "category": "party_social",
+    "template": "topdown_2d",
     "mechanics": [
-      "bowling",
-      "lane",
-      "knockdown"
+      "round_timer",
+      "random_objective",
+      "score_rounds"
     ],
     "seed": 42,
     "platform": "web"
@@ -29,7 +29,7 @@
   "entities": [
     {
       "id": "player_1",
-      "kind": "ball",
+      "kind": "player",
       "tags": [
         "player"
       ],
@@ -82,20 +82,21 @@
       }
     },
     {
-      "id": "pin_1",
-      "kind": "pin",
+      "id": "target_1",
+      "kind": "target",
       "components": {
         "Transform": {
           "pos": [
-            620,
-            140
+            560,
+            120
           ]
         },
         "CircleCollider": {
-          "radius": 8
+          "radius": 12
         },
-        "RigidBody": {
-          "type": "dynamic"
+        "Goal": {
+          "type": "enter_trigger",
+          "target": "player_1"
         }
       }
     }
