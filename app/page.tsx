@@ -1,6 +1,7 @@
 "use client";
 
 import FigmaApp from "@/app/figma/App";
+import Link from "next/link";
 
 function BunnyIcon() {
   return (
@@ -29,8 +30,17 @@ function BunnyIcon() {
 export default function Page() {
   return (
     <div className="relative min-h-screen">
-      <div className="absolute right-4 top-4 z-50 rounded-full bg-white/90 p-2 shadow-md">
-        <BunnyIcon />
+      <div className="absolute right-4 top-4 z-50 flex items-center gap-3">
+        <Link
+          href="/dev/gamespec"
+          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-slate-700"
+        >
+          Dev Playground
+        </Link>
+
+        <div className="rounded-full bg-white/90 p-2 shadow-md">
+          <BunnyIcon />
+        </div>
       </div>
       <FigmaApp />
     </div>
