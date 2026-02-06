@@ -1,0 +1,92 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "title": "Tiger Bowling",
+    "category": "sports",
+    "template": "physics_2d",
+    "mechanics": ["drag_shot", "lane_physics", "collisions", "knockdown", "score_target"],
+    "seed": 9,
+    "platform": "web"
+  },
+  "world": {
+    "physics": {
+      "gravity": [0, 180],
+      "friction": 0.06,
+      "restitution": 0.25,
+      "timeStep": 0.016
+    },
+    "camera": {
+      "mode": "follow",
+      "target": "tiger_ball"
+    }
+  },
+  "entities": [
+    {
+      "id": "tiger_ball",
+      "kind": "ball",
+      "tags": ["player", "tiger"],
+      "components": {
+        "Transform": { "pos": [90, 160] },
+        "Sprite": { "ref": "tiger_ball" },
+        "RigidBody": { "type": "dynamic", "mass": 2 },
+        "CircleCollider": { "radius": 14 },
+        "InputController": { "scheme": "drag_shot" }
+      }
+    },
+    {
+      "id": "pin_cluster",
+      "kind": "pins",
+      "components": {
+        "Transform": { "pos": [620, 160] },
+        "Goal": { "type": "score_target", "value": 10 }
+      }
+    }
+  ],
+  "components": {
+    "supported": [
+      "Transform",
+      "Sprite",
+      "RigidBody",
+      "CircleCollider",
+      "BoxCollider",
+      "InputController",
+      "AudioEmitter",
+      "Goal",
+      "Scoring",
+      "Spawner"
+    ]
+  },
+  "rules": [
+    {
+      "when": { "event": "Collision", "a": "tiger_ball", "b": "pin_cluster" },
+      "do": [
+        { "action": "AddScore", "amount": 10 },
+        { "action": "PlaySound", "sound": "hit", "volume": 0.75 }
+      ]
+    },
+    {
+      "when": { "event": "GoalReached", "entity": "pin_cluster" },
+      "do": [
+        { "action": "ShowMessage", "text": "Strike!", "durationMs": 1200 },
+        { "action": "EndRound", "result": "win" }
+      ]
+    }
+  ],
+  "assets": {
+    "sprites": {
+      "tiger_ball": "sprite:tiger_ball",
+      "pin": "sprite:bowling_pin"
+    },
+    "sounds": {
+      "hit": "sfx:hit_01",
+      "crowd": "sfx:crowd_cheer"
+    }
+  },
+  "constraints": {
+    "maxEntities": 150,
+    "maxSounds": 16,
+    "targetFPS": 60,
+    "maxRules": 32,
+    "maxParticles": 150
+  }
+}
