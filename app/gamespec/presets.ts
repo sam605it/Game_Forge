@@ -1,4 +1,5 @@
 import { CATEGORY_TEMPLATE_MAP, DEFAULT_CONSTRAINTS, SUPPORTED_COMPONENTS } from "./defaults";
+import { isBanned } from "./promptContract";
 import { CATEGORY_PLAYBOOKS } from "./playbooks";
 import type { Category, GameEntity, GameSpecV1, Rule } from "./types";
 
@@ -92,7 +93,7 @@ const applyThemeHints = (spec: GameSpecV1) => {
   const hasTiger = text.includes("tiger");
   const hasStatue = text.includes("statue");
 
-  if (hasTrees && !spec.entities.some((entity) => entity.kind === "obstacle")) {
+  if (hasTrees && !isBanned("tree", spec) && !spec.entities.some((entity) => entity.kind === "obstacle")) {
     spec.entities.push({
       id: "tree_spawner_auto",
       kind: "decor_spawner",
@@ -156,7 +157,10 @@ export function applyCategoryPreset(spec: GameSpecV1): GameSpecV1 {
       targetFPS: clamp(spec.constraints.targetFPS || DEFAULT_CONSTRAINTS.targetFPS, 24, 120),
       maxRules: clamp(spec.constraints.maxRules || DEFAULT_CONSTRAINTS.maxRules || 128, 1, 500),
       maxParticles: clamp(spec.constraints.maxParticles || DEFAULT_CONSTRAINTS.maxParticles || 300, 0, 5000),
+      requiredEntities: spec.constraints.requiredEntities ?? DEFAULT_CONSTRAINTS.requiredEntities ?? [],
+      bannedEntities: spec.constraints.bannedEntities ?? DEFAULT_CONSTRAINTS.bannedEntities ?? [],
     },
+    promptContract: spec.promptContract,
   };
 
   normalized.entities = ensureCategoryEntities(normalized).slice(0, normalized.constraints.maxEntities);

@@ -12,6 +12,7 @@ export default function GameSpecDevPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [spec, setSpec] = useState<GameSpecV1 | null>(null);
+  const [sanitizerReport, setSanitizerReport] = useState<{ removed?: { count: number }; contract?: { mustHave: string[]; mustNotHave: string[] } } | null>(null);
 
   const onGenerate = async () => {
     setLoading(true);
@@ -26,12 +27,15 @@ export default function GameSpecDevPage() {
       if (!data.ok) {
         setError((data.errors || ["Failed to generate"]).join(", "));
         setSpec(null);
+        setSanitizerReport(null);
       } else {
-        setSpec(applyCategoryPreset(data.spec));
+        setSpec(data.spec);
+        setSanitizerReport(data.sanitizerReport ?? null);
       }
     } catch {
       setError("Request failed.");
       setSpec(null);
+      setSanitizerReport(null);
     } finally {
       setLoading(false);
     }
@@ -80,6 +84,11 @@ export default function GameSpecDevPage() {
             {loading ? "Generating..." : "Generate & Play"}
           </button>
         </div>
+        <div className="rounded border border-slate-700 bg-slate-900/40 p-2 text-xs text-slate-300">
+          <div>mustHave: {(sanitizerReport?.contract?.mustHave ?? []).join(", ") || "(none)"}</div>
+          <div>mustNotHave: {(sanitizerReport?.contract?.mustNotHave ?? []).join(", ") || "(none)"}</div>
+          <div>sanitizer removed count: {sanitizerReport?.removed?.count ?? 0}</div>
+        </div>
       </div>
 
       <section className="mb-4 rounded border border-slate-700 bg-slate-900/40 p-3">
@@ -93,6 +102,7 @@ export default function GameSpecDevPage() {
                 setCategoryHint(category);
                 setPrompt(CATEGORY_EXAMPLES[category].metadata.title);
                 setSpec(applyCategoryPreset(CATEGORY_EXAMPLES[category]));
+                setSanitizerReport(null);
                 setError(null);
               }}
             >
@@ -108,18 +118,9 @@ export default function GameSpecDevPage() {
       {error && <p className="mb-4 text-red-400">{error}</p>}
 
       {spec && (
-        <>
-          <section className="mb-6 rounded border border-slate-700 p-3">
-            {renderSpec(spec)}
-          </section>
-
-          <section>
-            <h2 className="mb-2 text-lg font-semibold">Normalized Spec</h2>
-            <pre className="overflow-auto rounded border border-slate-700 bg-slate-900 p-3 text-xs">
-              {JSON.stringify(spec, null, 2)}
-            </pre>
-          </section>
-        </>
+        <section className="mb-6 rounded border border-slate-700 p-3">
+          {renderSpec(spec)}
+        </section>
       )}
     </main>
   );

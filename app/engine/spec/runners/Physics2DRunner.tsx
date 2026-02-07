@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameSpecV1 } from "@/app/gamespec/types";
+import { isBanned } from "@/app/gamespec/promptContract";
 
 type Props = { spec: GameSpecV1 };
 
@@ -36,7 +37,9 @@ export function Physics2DRunner({ spec }: Props) {
     const holes = [{ x: 680, y: 100, r: 10 }];
     const targets = [{ x: 620, y: 80, r: 16, live: true }, { x: 640, y: 170, r: 16, live: true }];
     const pins = Array.from({ length: 10 }, (_, i) => ({ x: 620 + (i % 4) * 18, y: 150 + Math.floor(i / 4) * 18, live: true }));
-    const trees = Array.from({ length: 30 }, (_, i) => ({ x: 120 + ((i * 37) % 560), y: 40 + ((i * 71) % 240), r: 11 }));
+    const trees = isBanned("tree", spec)
+      ? []
+      : Array.from({ length: 30 }, (_, i) => ({ x: 120 + ((i * 37) % 560), y: 40 + ((i * 71) % 240), r: 11 }));
     const spawned: Array<{ x: number; y: number; vy: number }> = [];
     let dragStart: { x: number; y: number } | null = null;
 
