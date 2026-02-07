@@ -41,10 +41,20 @@ function deriveRepairHints(failures: ReturnType<typeof evaluateSpecAgainstPrompt
 }
 
 export async function POST(req: Request) {
+  let body: unknown;
   try {
-    const body = await req.json();
-    const prompt = typeof body.prompt === "string" ? body.prompt : "";
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
 
+  const bodyData = body as { prompt?: unknown };
+  const prompt = typeof bodyData.prompt === "string" ? bodyData.prompt.trim() : "";
+  if (!prompt) {
+    return NextResponse.json({ error: "prompt is required." }, { status: 400 });
+  }
+
+  try {
     let requirements = parsePromptToRequirements(prompt);
     let spec = buildGameSpec(requirements);
 
