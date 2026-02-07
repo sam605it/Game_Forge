@@ -123,6 +123,12 @@ export default function Page() {
     [],
   );
 
+  const applySpec = useCallback((nextSpec: GameSpec) => {
+    setSpec(nextSpec);
+    setStrokes(0);
+    setResetToken((value) => value + 1);
+  }, []);
+
   const fetchGameSpec = useCallback(async (prompt: string) => {
     setIsLoading(true);
     try {
@@ -135,14 +141,14 @@ export default function Page() {
         throw new Error("Failed to generate game.");
       }
       const data = (await response.json()) as GameSpec;
-      setSpec(data);
+      applySpec(data);
     } catch {
       const requirements = parsePromptToRequirements(prompt);
-      setSpec(buildGameSpec(requirements));
+      applySpec(buildGameSpec(requirements));
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [applySpec]);
 
   useEffect(() => {
     fetchGameSpec(initialPrompt);
@@ -164,12 +170,20 @@ export default function Page() {
       return;
     }
     const shareText = `Game Forge: ${lastMessage} (Strokes: ${strokes})`;
-    if (navigator.share) {
-      await navigator.share({ title: "Game Forge", text: shareText });
-      return;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Game Forge", text: shareText });
+        return;
+      }
+    } catch {
+      // Fall through to clipboard fallback.
     }
-    if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(shareText);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareText);
+      }
+    } catch {
+      // Ignore clipboard errors in non-secure contexts.
     }
   };
 
