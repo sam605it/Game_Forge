@@ -124,6 +124,7 @@ function extractCount(input: string, noun: string): number | undefined {
 
 function extractExclusions(input: string): string[] {
   const exclusions = new Set<string>();
+  const splitPattern = /\s*(?:,|\band\b)\s*/gi;
   const patterns = [
     /without\s+([a-z\s-]+)/gi,
     /no\s+([a-z\s-]+)/gi,
@@ -136,7 +137,7 @@ function extractExclusions(input: string): string[] {
       const text = match[1];
       if (!text) continue;
       text
-        .split(/,|and/)
+        .split(splitPattern)
         .map((item) => item.trim())
         .filter(Boolean)
         .forEach((item) => {
