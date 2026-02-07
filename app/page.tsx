@@ -1,48 +1,53 @@
 "use client";
 
 import FigmaApp from "@/app/figma/App";
-import Link from "next/link";
 
-function BunnyIcon() {
+function IconButton({ label, icon }: { label: string; icon: string }) {
   return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 128 128"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label="Bunny icon"
-      role="img"
+    <button
+      type="button"
+      className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50"
+      aria-label={label}
     >
-      <ellipse cx="45" cy="23" rx="13" ry="28" fill="#F7F7FB" stroke="#222" strokeWidth="4" />
-      <ellipse cx="83" cy="23" rx="13" ry="28" fill="#F7F7FB" stroke="#222" strokeWidth="4" />
-      <ellipse cx="45" cy="30" rx="6" ry="16" fill="#FFC8D9" />
-      <ellipse cx="83" cy="30" rx="6" ry="16" fill="#FFC8D9" />
-      <circle cx="64" cy="72" r="34" fill="#F7F7FB" stroke="#222" strokeWidth="4" />
-      <circle cx="52" cy="68" r="4" fill="#222" />
-      <circle cx="76" cy="68" r="4" fill="#222" />
-      <path d="M64 74C60 74 57 77 57 81C57 85 60 88 64 88C68 88 71 85 71 81C71 77 68 74 64 74Z" fill="#FF8FB2" />
-      <path d="M53 92C58 97 70 97 75 92" stroke="#222" strokeWidth="4" strokeLinecap="round" />
-    </svg>
+      {icon}
+    </button>
   );
 }
 
 export default function Page() {
   return (
-    <div className="relative min-h-screen">
-      <div className="absolute right-4 top-4 z-50 flex items-center gap-3">
-        <Link
-          href="/dev/gamespec"
-          className="rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:bg-slate-700"
-        >
-          Dev Playground
-        </Link>
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200 text-slate-900">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="rounded-3xl border border-slate-200 bg-white/80 shadow-xl backdrop-blur">
+          <header className="flex flex-wrap items-center justify-between gap-6 border-b border-slate-200 px-8 py-6">
+            <div>
+              <div className="text-2xl font-semibold">Game Forge</div>
+              <div className="text-sm text-slate-500">AI-Driven Mini Game Creator</div>
+            </div>
 
-        <div className="rounded-full bg-white/90 p-2 shadow-md">
-          <BunnyIcon />
+            <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-2 py-1 text-sm font-medium text-slate-600 shadow-sm">
+              <button className="rounded-full bg-slate-200 px-4 py-1.5 text-slate-800">
+                Vault
+              </button>
+              <button className="rounded-full px-4 py-1.5 hover:bg-slate-100">Explore</button>
+              <button className="rounded-full px-4 py-1.5 hover:bg-slate-100">Connect</button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <IconButton label="Help" icon="?" />
+              <IconButton label="Profile" icon="👤" />
+            </div>
+          </header>
+
+          <main className="px-8 py-8">
+            <FigmaApp />
+          </main>
+
+          <footer className="border-t border-slate-200 px-8 py-4 text-sm text-slate-500">
+            You&apos;re here...
+          </footer>
         </div>
       </div>
-      <FigmaApp />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ChatMessage } from "@/app/types";
 
 interface Props {
@@ -13,9 +14,17 @@ export default function ChatInterface({
   isTyping = false,
   onSendMessage,
 }: Props) {
+  const [draft, setDraft] = useState("");
+
+  function handleSend() {
+    if (!draft.trim()) return;
+    onSendMessage(draft.trim());
+    setDraft("");
+  }
+
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+    <div className="flex h-full flex-col">
+      <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {messages.map((m) => (
           <div key={m.id} className="text-sm">
             <b className="capitalize">{m.role}:</b> {m.content}
@@ -28,16 +37,26 @@ export default function ChatInterface({
       </div>
 
       <div className="border-t p-3">
-        <input
-          className="w-full rounded border px-3 py-2 text-black"
-          placeholder="Describe a game or action…"
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && e.currentTarget.value.trim()) {
-              onSendMessage(e.currentTarget.value);
-              e.currentTarget.value = "";
-            }
-          }}
-        />
+        <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          <input
+            className="w-full bg-transparent text-sm text-black outline-none"
+            placeholder=""
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                handleSend();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            className="rounded-full bg-slate-200 px-3 py-1.5 text-sm text-slate-700"
+          >
+            ➤
+          </button>
+        </div>
       </div>
     </div>
   );
