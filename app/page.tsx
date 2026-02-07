@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import ChatInterface, { type ChatMessage } from "@/components/ChatInterface";
 import GamePreview from "@/components/GamePreview";
-import { createFallbackSpec } from "@/lib/runtime/engine";
+import { buildPromptFallbackSpec } from "@/lib/ai/promptFallback";
 import {
   addVaultGame,
   getFlashRemaining,
@@ -77,7 +77,7 @@ export default function ForgePage() {
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
         setErrorMessage(message);
-        setSpec(createFallbackSpec());
+        setSpec(buildPromptFallbackSpec(prompt));
       } finally {
         setIsLoading(false);
       }

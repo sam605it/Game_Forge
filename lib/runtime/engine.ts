@@ -1,4 +1,5 @@
 import type { Entity, GameSpecV1 } from "@/types";
+import { SUPPORTED_SHAPES } from "@/lib/runtime/capabilities";
 
 type RuntimeStatus = "idle" | "running" | "won" | "lost" | "paused";
 
@@ -30,10 +31,10 @@ const defaultState: RuntimeState = {
 
 const createFallbackSpec = (): GameSpecV1 => ({
   id: `${Date.now()}`,
-  title: "Spark Dodge",
+  title: "Training Course",
   category: "arcade",
-  description: "Dodge the sparks and reach the safe zone.",
-  assets: ["⚡", "🛡️"],
+  description: "Reach the goal to win.",
+  assets: [],
   world: {
     size: { width: 800, height: 600 },
     physics: { gravity: [0, 0], friction: 0.98, restitution: 0.8, timeStep: 1 / 60 },
@@ -47,8 +48,8 @@ const createFallbackSpec = (): GameSpecV1 => ({
       velocity: { x: 0, y: 0 },
       size: { width: 32, height: 32 },
       rotation: 0,
-      render: { type: "emoji", emoji: "🛡️" },
-      collider: { type: "rect", isStatic: false },
+      render: { type: "shape", shape: "circle", color: "#38bdf8" },
+      collider: { type: "circle", isStatic: false },
       tags: ["player"],
     },
     {
@@ -58,33 +59,28 @@ const createFallbackSpec = (): GameSpecV1 => ({
       velocity: { x: 0, y: 0 },
       size: { width: 48, height: 48 },
       rotation: 0,
-      render: { type: "shape", shape: "rect", color: "#22c55e" },
-      collider: { type: "rect", isStatic: true, isSensor: true },
+      render: { type: "shape", shape: "circle", color: "#22c55e" },
+      collider: { type: "circle", isStatic: true, isSensor: true },
       tags: ["goal"],
-    },
-    {
-      id: "hazard-1",
-      kind: "hazard",
-      position: { x: 400, y: 200 },
-      velocity: { x: 120, y: 90 },
-      size: { width: 28, height: 28 },
-      rotation: 0,
-      render: { type: "emoji", emoji: "⚡" },
-      collider: { type: "circle", isStatic: false, isSensor: true },
-      tags: ["hazard"],
     },
   ],
   rules: [
-    { type: "goal", params: { targetTag: "goal" } },
-    { type: "avoid", params: { targetTag: "hazard" } },
+    { type: "win_on_goal", params: { targetTag: "goal", maxSpeed: 999 } },
   ],
   controls: {
-    scheme: "hybrid",
-    mappings: { up: ["ArrowUp", "KeyW"], down: ["ArrowDown", "KeyS"], left: ["ArrowLeft", "KeyA"], right: ["ArrowRight", "KeyD"], action: ["Space"] },
+    scheme: "keyboard_move",
+    mappings: {
+      up: ["ArrowUp", "KeyW"],
+      down: ["ArrowDown", "KeyS"],
+      left: ["ArrowLeft", "KeyA"],
+      right: ["ArrowRight", "KeyD"],
+      action: ["Space"],
+      reset: ["KeyR"],
+    },
   },
   ui: {
-    hud: [{ type: "message", label: "Escape the sparks" }],
-    messages: { win: "Safe zone reached!", lose: "Zapped! Try again." },
+    hud: [{ type: "message", label: "Reach the goal" }],
+    messages: { win: "Goal reached!" },
   },
 });
 
@@ -138,6 +134,13 @@ const resolveBoundary = (entity: Entity, worldWidth: number, worldHeight: number
 
 export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasElement, callbacks: EngineCallbacks = {}) => {
   const spec = specInput ?? createFallbackSpec();
+  const isGolfMode =
+    spec.controls.scheme === "mouse_drag_shot" ||
+    spec.controls.scheme === "click_shot" ||
+    (spec.category === "sports" &&
+      (spec.title.toLowerCase().includes("golf") || spec.description.toLowerCase().includes("golf")));
+  const shootRule = spec.rules.find((rule) => rule.type === "score");
+  const shootTag = shootRule?.params?.targetTag === "bumper" ? "bumper" : null;
   const context = canvas.getContext("2d");
   if (!context) {
     return {
@@ -154,13 +157,21 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   let state: RuntimeState = { ...defaultState };
   let frameId: number | null = null;
   let lastTime = 0;
-  let collected = 0;
+  let strokes = 0;
   let status: RuntimeStatus = "idle";
+  let actionQueued = false;
+  const golfAimMaxDrag = 160;
+  const golfAimPowerScale = 0.09;
 
   const input: InputState = { up: false, down: false, left: false, right: false, action: false };
   const keyMap = spec.controls.mappings;
 
   const player = () => entities.find((entity) => entity.tags?.includes("player")) ?? entities[0];
+  const playerStart = () => {
+    const basePlayer = baseEntities.find((entity) => entity.tags?.includes("player")) ?? baseEntities[0];
+    return basePlayer ? { x: basePlayer.position.x, y: basePlayer.position.y } : { x: 0, y: 0 };
+  };
+  const teePosition = playerStart();
 
   const updateState = (next: Partial<RuntimeState>) => {
     state = { ...state, ...next };
@@ -191,7 +202,7 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
 
   const reset = () => {
     entities = cloneEntities(baseEntities);
-    collected = 0;
+    strokes = 0;
     updateState({ score: 0, timeRemaining: getTimerDuration(), message: null });
     setStatus("idle", spec.ui.messages?.start ?? null);
   };
@@ -207,7 +218,7 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   };
 
   const getTimerDuration = () => {
-    const timerRule = spec.rules.find((rule) => rule.type === "timer");
+    const timerRule = spec.rules.find((rule) => rule.type === "timer" || rule.type === "lose_on_timer");
     if (!timerRule) return null;
     const duration = Number(timerRule.params.duration ?? timerRule.params.time ?? 30);
     return Number.isFinite(duration) ? duration : null;
@@ -218,7 +229,13 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
     if (keyMap.down?.includes(event.code)) input.down = true;
     if (keyMap.left?.includes(event.code)) input.left = true;
     if (keyMap.right?.includes(event.code)) input.right = true;
-    if (keyMap.action?.includes(event.code)) input.action = true;
+    if (keyMap.action?.includes(event.code)) {
+      input.action = true;
+      if (!isGolfMode) actionQueued = true;
+    }
+    if (keyMap.reset?.includes(event.code) || event.code === "KeyR") {
+      reset();
+    }
   };
 
   const onKeyUp = (event: KeyboardEvent) => {
@@ -231,23 +248,73 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
 
   let pointerActive = false;
   let pointerTarget: { x: number; y: number } | null = null;
+  let golfDragStart: { x: number; y: number } | null = null;
+  let golfDragCurrent: { x: number; y: number } | null = null;
+
+  const toWorldPoint = (offsetX: number, offsetY: number) => {
+    const canvasRect = canvas.getBoundingClientRect();
+    const scaleX = spec.world.size.width / canvasRect.width;
+    const scaleY = spec.world.size.height / canvasRect.height;
+    return { x: offsetX * scaleX, y: offsetY * scaleY };
+  };
 
   const onPointerDown = (event: PointerEvent) => {
+    if (isGolfMode) {
+      const start = toWorldPoint(event.offsetX, event.offsetY);
+      const golfBall = player();
+      if (!golfBall) return;
+      const radius = Math.max(golfBall.size.width, golfBall.size.height) / 2 + 6;
+      const dist = Math.hypot(start.x - golfBall.position.x, start.y - golfBall.position.y);
+      const speed = Math.hypot(golfBall.velocity.x, golfBall.velocity.y);
+      if (dist <= radius && speed <= 0.15) {
+        golfDragStart = { x: golfBall.position.x, y: golfBall.position.y };
+        golfDragCurrent = start;
+      }
+      return;
+    }
     pointerActive = true;
     pointerTarget = { x: event.offsetX, y: event.offsetY };
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (event: PointerEvent) => {
+    if (isGolfMode && golfDragStart) {
+      const end = toWorldPoint(event.offsetX, event.offsetY);
+      const golfBall = player();
+      if (golfBall) {
+        const dx = golfDragStart.x - end.x;
+        const dy = golfDragStart.y - end.y;
+        const distance = Math.hypot(dx, dy);
+        if (distance > 2) {
+          const clamped = clamp(distance, 0, golfAimMaxDrag);
+          const strength = (clamped / golfAimMaxDrag) * golfAimPowerScale * golfAimMaxDrag;
+          const nx = dx / distance;
+          const ny = dy / distance;
+          golfBall.velocity.x += nx * strength;
+          golfBall.velocity.y += ny * strength;
+          strokes += 1;
+          updateState({ score: strokes });
+        }
+      }
+      golfDragStart = null;
+      golfDragCurrent = null;
+      return;
+    }
     pointerActive = false;
     pointerTarget = null;
   };
 
   const onPointerMove = (event: PointerEvent) => {
+    if (isGolfMode) {
+      if (!golfDragStart) return;
+      golfDragCurrent = toWorldPoint(event.offsetX, event.offsetY);
+      return;
+    }
     if (!pointerActive) return;
     pointerTarget = { x: event.offsetX, y: event.offsetY };
   };
 
   const applyInput = (entity: Entity, delta: number) => {
+    if (isGolfMode || spec.controls.scheme === "mouse_drag_shot" || spec.controls.scheme === "click_shot") return;
     const speed = 220;
     let directionX = 0;
     let directionY = 0;
@@ -257,11 +324,9 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
     if (input.right) directionX += 1;
 
     if (pointerActive && pointerTarget) {
-      const canvasRect = canvas.getBoundingClientRect();
-      const scaleX = spec.world.size.width / canvasRect.width;
-      const scaleY = spec.world.size.height / canvasRect.height;
-      const targetX = pointerTarget.x * scaleX;
-      const targetY = pointerTarget.y * scaleY;
+      const target = toWorldPoint(pointerTarget.x, pointerTarget.y);
+      const targetX = target.x;
+      const targetY = target.y;
       directionX = clamp((targetX - entity.position.x) / 100, -1, 1);
       directionY = clamp((targetY - entity.position.y) / 100, -1, 1);
     }
@@ -300,11 +365,15 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
       if (entity.id === playerEntity.id) continue;
       if (!intersects(playerEntity, entity)) continue;
 
-      if (entity.collider.isSensor || entity.tags?.includes("collectible")) {
-        if (entity.tags?.includes("collectible")) {
-          collected += 1;
-          state.score += Number(spec.rules.find((rule) => rule.type === "score")?.params.amount ?? 1);
-          entities = entities.filter((item) => item.id !== entity.id);
+      if (entity.collider.isSensor) {
+        if (isGolfMode && entity.tags?.includes("hazard")) {
+          const start = playerStart();
+          playerEntity.position.x = start.x;
+          playerEntity.position.y = start.y;
+          playerEntity.velocity.x = 0;
+          playerEntity.velocity.y = 0;
+          updateState({ message: "Hazard! Ball reset." });
+          continue;
         }
         evaluateRules(entity);
         continue;
@@ -329,30 +398,35 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
     if (status !== "running") return;
 
     for (const rule of spec.rules) {
-      if (rule.type === "timer") {
+      if (rule.type === "timer" || rule.type === "lose_on_timer") {
         if (state.timeRemaining !== null && state.timeRemaining <= 0) {
           setStatus("lost", spec.ui.messages?.lose ?? "Time's up!");
         }
       }
       if (!collidedEntity) continue;
-      if (rule.type === "goal") {
+      if (rule.type === "win_on_goal") {
         const targetTag = rule.params.targetTag ?? "goal";
         if (collidedEntity.tags?.includes(targetTag)) {
-          setStatus("won", spec.ui.messages?.win ?? "Goal reached!");
-        }
-      }
-      if (rule.type === "avoid") {
-        const targetTag = rule.params.targetTag ?? "hazard";
-        if (collidedEntity.tags?.includes(targetTag)) {
-          setStatus("lost", spec.ui.messages?.lose ?? "You were caught!");
-        }
-      }
-      if (rule.type === "collect") {
-        const targetTag = rule.params.targetTag ?? "collectible";
-        const targetCount = Number(rule.params.count ?? 3);
-        if (collidedEntity.tags?.includes(targetTag)) {
-          if (collected >= targetCount) {
-            setStatus("won", spec.ui.messages?.win ?? "Collection complete!");
+          const playerEntity = player();
+          const maxSpeed = Number(rule.params.maxSpeed ?? 1.2);
+          const speed = playerEntity ? Math.hypot(playerEntity.velocity.x, playerEntity.velocity.y) : 0;
+          if (speed <= maxSpeed && playerEntity) {
+            if (isGolfMode) {
+              const cupRadius = Math.max(collidedEntity.size.width, collidedEntity.size.height) / 2;
+              const distance = Math.hypot(
+                playerEntity.position.x - collidedEntity.position.x,
+                playerEntity.position.y - collidedEntity.position.y,
+              );
+              if (distance <= cupRadius) {
+                playerEntity.position.x = collidedEntity.position.x;
+                playerEntity.position.y = collidedEntity.position.y;
+                playerEntity.velocity.x = 0;
+                playerEntity.velocity.y = 0;
+                setStatus("won", spec.ui.messages?.win ?? "HOLE IN!");
+              }
+            } else {
+              setStatus("won", spec.ui.messages?.win ?? "Goal reached!");
+            }
           }
         }
       }
@@ -378,13 +452,59 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
       context.fillText(entity.render.emoji, entity.position.x, entity.position.y + 4);
       return;
     }
+    const isCup =
+      isGolfMode && (entity.tags?.includes("goal") || entity.tags?.includes("cup") || entity.kind === "cup" || entity.kind === "goal");
+    const isBall = isGolfMode && (entity.tags?.includes("ball") || entity.kind === "ball");
     const color = entity.render.color ?? "#94a3b8";
+    if (entity.render.shape && !SUPPORTED_SHAPES.includes(entity.render.shape)) {
+      return;
+    }
+    if (isCup) {
+      const radius = Math.max(halfW, halfH);
+      context.fillStyle = "#e2e8f0";
+      context.beginPath();
+      context.arc(entity.position.x, entity.position.y, radius, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = color;
+      context.beginPath();
+      context.arc(entity.position.x, entity.position.y, radius * 0.55, 0, Math.PI * 2);
+      context.fill();
+      context.strokeStyle = "#0f172a";
+      context.lineWidth = 2;
+      context.beginPath();
+      context.moveTo(entity.position.x + radius * 0.2, entity.position.y - radius * 1.2);
+      context.lineTo(entity.position.x + radius * 0.2, entity.position.y - radius * 2);
+      context.stroke();
+      context.fillStyle = "#ef4444";
+      context.beginPath();
+      context.moveTo(entity.position.x + radius * 0.2, entity.position.y - radius * 2);
+      context.lineTo(entity.position.x + radius * 1.2, entity.position.y - radius * 1.6);
+      context.lineTo(entity.position.x + radius * 0.2, entity.position.y - radius * 1.2);
+      context.closePath();
+      context.fill();
+      return;
+    }
     context.fillStyle = color;
+    if (entity.render.shape === "line") {
+      context.strokeStyle = color;
+      context.lineWidth = Math.max(2, entity.size.height);
+      context.beginPath();
+      context.moveTo(entity.position.x - halfW, entity.position.y);
+      context.lineTo(entity.position.x + halfW, entity.position.y);
+      context.stroke();
+      return;
+    }
     if (entity.render.shape === "circle" || entity.collider.type === "circle") {
       const radius = Math.max(halfW, halfH);
       context.beginPath();
       context.arc(entity.position.x, entity.position.y, radius, 0, Math.PI * 2);
       context.fill();
+      if (isBall) {
+        context.fillStyle = "#cbd5f5";
+        context.beginPath();
+        context.arc(entity.position.x - radius * 0.25, entity.position.y - radius * 0.25, radius * 0.25, 0, Math.PI * 2);
+        context.fill();
+      }
       return;
     }
     context.fillRect(entity.position.x - halfW, entity.position.y - halfH, entity.size.width, entity.size.height);
@@ -404,10 +524,41 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
     context.save();
     context.scale(dpr * scaleX, dpr * scaleY);
     context.clearRect(0, 0, width, height);
-    context.fillStyle = "#0f172a";
+    context.fillStyle = isGolfMode ? "#14532d" : "#0f172a";
     context.fillRect(0, 0, width, height);
+    if (isGolfMode) {
+      context.fillStyle = "#1e293b";
+      context.beginPath();
+      context.arc(teePosition.x, teePosition.y, 6, 0, Math.PI * 2);
+      context.fill();
+    }
     for (const entity of entities) {
       drawEntity(entity);
+    }
+    if (isGolfMode && golfDragStart && golfDragCurrent) {
+      context.strokeStyle = "#facc15";
+      context.lineWidth = 2;
+      const dx = golfDragStart.x - golfDragCurrent.x;
+      const dy = golfDragStart.y - golfDragCurrent.y;
+      const distance = Math.hypot(dx, dy);
+      const clamped = clamp(distance, 0, golfAimMaxDrag);
+      const aimScale = distance === 0 ? 0 : clamped / distance;
+      const aimEndX = golfDragStart.x + dx * aimScale;
+      const aimEndY = golfDragStart.y + dy * aimScale;
+      context.beginPath();
+      context.moveTo(golfDragStart.x, golfDragStart.y);
+      context.lineTo(aimEndX, aimEndY);
+      context.stroke();
+      const powerPercent = clamped / golfAimMaxDrag;
+      context.fillStyle = "rgba(15, 23, 42, 0.7)";
+      context.fillRect(16, 16, 120, 14);
+      context.fillStyle = "#facc15";
+      context.fillRect(18, 18, 116 * powerPercent, 10);
+      context.strokeStyle = "#e2e8f0";
+      context.strokeRect(16, 16, 120, 14);
+      context.fillStyle = "#f8fafc";
+      context.font = "12px sans-serif";
+      context.fillText("Power", 16, 42);
     }
     context.restore();
   };
@@ -420,6 +571,29 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
     }
     const delta = Math.min(0.033, (time - lastTime) / 1000);
     lastTime = time;
+    if (actionQueued && shootTag) {
+      actionQueued = false;
+      const playerEntity = player();
+      if (playerEntity) {
+        const range = 140;
+        let closest: { entity: Entity; dist: number } | null = null;
+        for (const entity of entities) {
+          if (entity.id === playerEntity.id) continue;
+          if (!entity.tags?.includes(shootTag)) continue;
+          const dx = entity.position.x - playerEntity.position.x;
+          const dy = entity.position.y - playerEntity.position.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist <= range && (!closest || dist < closest.dist)) {
+            closest = { entity, dist };
+          }
+        }
+        if (closest) {
+          entities = entities.filter((item) => item.id !== closest.entity.id);
+          state.score += Number(spec.rules.find((rule) => rule.type === "score")?.params.amount ?? 1);
+          updateState({ score: state.score });
+        }
+      }
+    }
     applyPhysics(delta);
     handleCollisions();
     updateTimer(delta);
