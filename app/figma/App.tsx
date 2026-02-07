@@ -35,12 +35,16 @@ export default function App() {
 
       const spec = (await response.json()) as GameSpec;
       setGameSpec(spec);
+      const baseMessage = `Generated ${spec.template} with ${spec.theme.skin} theme.`;
+      const assistantMessage = spec.error?.message
+        ? `${baseMessage} (${spec.error.message})`
+        : baseMessage;
       setMessages((prev) => [
         ...prev,
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: `Generated ${spec.template} with ${spec.theme.skin} theme.`,
+          content: assistantMessage,
         },
       ]);
     } catch (error) {

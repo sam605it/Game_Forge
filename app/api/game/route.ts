@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { GameSpecSchema } from "@/lib/gamespec/schema";
-import { parsePromptToRequirements } from "@/lib/nlp/requirements";
+import { parsePromptToRequirements, resolveTemplate } from "@/lib/nlp/requirements";
 import { buildGameSpec } from "@/lib/nlp/promptToSpec";
 import { evaluateSpecAgainstPrompt } from "@/lib/eval/evaluate";
 
@@ -18,7 +18,7 @@ function applyRepairHints(prompt: string, hints: RepairHints) {
   const holes = hints.forceHoles ?? requirements.counts.holes;
   return {
     ...requirements,
-    gameType: (hints.forceTemplate as typeof requirements.gameType) ?? requirements.gameType,
+    gameType: resolveTemplate(prompt, hints.forceTemplate ?? requirements.gameType),
     counts: { ...requirements.counts, holes },
     exclusions: Array.from(exclusions),
   };
@@ -54,26 +54,49 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "prompt is required." }, { status: 400 });
   }
 
+  let errorMessage: string | null = null;
+  let spec = null;
+
   try {
     let requirements = parsePromptToRequirements(prompt);
-    let spec = buildGameSpec(requirements);
+    requirements = {
+      ...requirements,
+      gameType: resolveTemplate(prompt, requirements.gameType),
+    };
+    spec = buildGameSpec(requirements);
 
     for (let attempt = 0; attempt < MAX_REPAIRS; attempt += 1) {
-      const evaluation = evaluateSpecAgainstPrompt(prompt, requirements, spec);
+      const evaluationRequirements = {
+        ...requirements,
+        gameType: spec.template,
+      };
+      const evaluation = evaluateSpecAgainstPrompt(prompt, evaluationRequirements, spec);
       if (evaluation.pass) break;
       const hints = deriveRepairHints(evaluation.failures);
       requirements = applyRepairHints(prompt, hints);
       spec = buildGameSpec(requirements);
     }
-
-    const parsed = GameSpecSchema.safeParse(spec);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "Invalid GameSpec" }, { status: 400 });
-    }
-
-    return NextResponse.json(parsed.data);
   } catch (error) {
     console.error("GAME API ERROR:", error);
-    return NextResponse.json({ error: "Invalid game output" }, { status: 500 });
+    errorMessage = "We hit an issue generating that game. Showing a fallback build.";
   }
+
+  const parsed = GameSpecSchema.safeParse(spec);
+  if (!parsed.success) {
+    errorMessage = errorMessage ?? "Generated game failed validation. Showing a fallback build.";
+    const fallbackRequirements = {
+      ...parsePromptToRequirements(prompt),
+      gameType: resolveTemplate(prompt, "mini_golf"),
+    };
+    const fallbackSpec = buildGameSpec(fallbackRequirements);
+    return NextResponse.json({
+      ...fallbackSpec,
+      error: { message: errorMessage },
+    });
+  }
+
+  return NextResponse.json({
+    ...parsed.data,
+    error: errorMessage ? { message: errorMessage } : undefined,
+  });
 }
