@@ -136,7 +136,7 @@ export default function Page() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_58%)]" />
         <div className="mx-auto flex min-h-[86vh] max-w-[1680px] flex-col gap-7">
           <header className="flex flex-wrap items-center justify-between gap-6">
-            <div className="text-[26px] font-semibold tracking-[0.35em]">GAME FORGE</div>
+            <div className="text-[26px] font-semibold tracking-[0.2em]">GAME FORGE</div>
             <nav className="flex items-center gap-10 text-[13px] font-semibold tracking-[0.3em] text-white/60">
               {navItems.map((item) => (
                 <button
