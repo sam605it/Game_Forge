@@ -13,6 +13,11 @@ type BallState = {
   sunk: boolean;
 };
 
+type HoleProps = {
+  holeIndex: number;
+  tee?: [number, number];
+};
+
 const imageCache = new Map<string, HTMLImageElement>();
 
 function loadIcon(iconId: string) {
@@ -25,6 +30,25 @@ function loadIcon(iconId: string) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getHoleProps(value: unknown): HoleProps | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.holeIndex !== "number") return null;
+  if (value.tee === undefined) return { holeIndex: value.holeIndex };
+  if (
+    Array.isArray(value.tee) &&
+    value.tee.length === 2 &&
+    typeof value.tee[0] === "number" &&
+    typeof value.tee[1] === "number"
+  ) {
+    return { holeIndex: value.holeIndex, tee: [value.tee[0], value.tee[1]] };
+  }
+  return { holeIndex: value.holeIndex };
 }
 
 export function runMiniGolf(spec: GameSpec, canvas: HTMLCanvasElement): MiniGolfRuntime {
@@ -133,9 +157,10 @@ export function runMiniGolf(spec: GameSpec, canvas: HTMLCanvasElement): MiniGolf
       ballState.vel = [0, 0];
     }
 
-    const currentHole = holeEntities.find(
-      (hole) => hole.props?.holeIndex === ballState.holeIndex,
-    );
+    const currentHole = holeEntities.find((hole) => {
+      const props = getHoleProps(hole.props);
+      return props?.holeIndex === ballState.holeIndex;
+    });
     if (currentHole && speed < 0.4) {
       const dx = ballState.pos[0] - currentHole.pos[0];
       const dy = ballState.pos[1] - currentHole.pos[1];
@@ -147,9 +172,13 @@ export function runMiniGolf(spec: GameSpec, canvas: HTMLCanvasElement): MiniGolf
     if (ballState.sunk) {
       const nextIndex = ballState.holeIndex + 1;
       if (nextIndex < holeEntities.length) {
-        const nextHole = holeEntities.find((hole) => hole.props?.holeIndex === nextIndex);
+        const nextHole = holeEntities.find((hole) => {
+          const props = getHoleProps(hole.props);
+          return props?.holeIndex === nextIndex;
+        });
+        const nextProps = nextHole ? getHoleProps(nextHole.props) : null;
         ballState.holeIndex = nextIndex;
-        ballState.pos = (nextHole?.props?.tee as [number, number]) ?? [140, 140 + nextIndex * 40];
+        ballState.pos = nextProps?.tee ?? [140, 140 + nextIndex * 40];
         ballState.vel = [0, 0];
         ballState.sunk = false;
       }
