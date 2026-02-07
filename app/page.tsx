@@ -132,9 +132,9 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-[#1c1c22] text-white">
-      <div className="relative min-h-screen overflow-hidden px-10 py-8">
+      <div className="relative min-h-screen overflow-hidden px-6 py-8">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_58%)]" />
-        <div className="mx-auto flex min-h-[86vh] max-w-[1400px] flex-col gap-7">
+        <div className="mx-auto flex min-h-[86vh] max-w-[1680px] flex-col gap-7">
           <header className="flex flex-wrap items-center justify-between gap-6">
             <div className="text-[26px] font-semibold tracking-[0.35em]">GAME FORGE</div>
             <nav className="flex items-center gap-10 text-[13px] font-semibold tracking-[0.3em] text-white/60">
@@ -165,7 +165,7 @@ export default function Page() {
             </div>
           </header>
 
-          <main className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-[320px_1fr]">
+          <main className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-[360px_1fr]">
             <section className="flex flex-col rounded-[28px] border border-white/40 bg-gradient-to-b from-white via-[#f7f6fb] to-[#ededf5] p-4 text-[#3b3b45] shadow-[0_24px_50px_rgba(0,0,0,0.35)]">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-2 text-base font-semibold">
