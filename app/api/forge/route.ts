@@ -1,9 +1,8 @@
-import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import type { GameSpecV1 } from "@/types";
 import { systemPrompt } from "@/lib/ai/systemPrompt";
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const OPENAI_ENDPOINT = "https://api.openai.com/v1/responses";
 const model = process.env.OPENAI_MODEL ?? "gpt-4o-mini";
 
 const gameSpecSchema = {
@@ -201,9 +200,23 @@ const validateSpec = (spec: GameSpecV1) => {
   }
 };
 
+const extractOutputText = (payload: unknown) => {
+  if (!payload || typeof payload !== "object") {
+    return "";
+  }
+
+  const typedPayload = payload as {
+    output_text?: string;
+    output?: Array<{ content?: Array<{ text?: string }> }>;
+  };
+
+  return typedPayload.output_text ?? typedPayload.output?.[0]?.content?.[0]?.text ?? "";
+};
+
 export async function POST(request: Request) {
   try {
-    if (!process.env.OPENAI_API_KEY) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
       return NextResponse.json({ error: "Missing OpenAI API key." }, { status: 500 });
     }
 
@@ -212,23 +225,41 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing prompt." }, { status: 400 });
     }
 
-    const response = await client.responses.create({
-      model,
-      input: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt },
-      ],
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "game_spec_v1",
-          schema: gameSpecSchema,
-          strict: true,
+    const response = await fetch(
+      OPENAI_ENDPOINT,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
         },
+        body: JSON.stringify({
+          model,
+          input: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt },
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "game_spec_v1",
+              schema: gameSpecSchema,
+              strict: true,
+            },
+          },
+        }),
       },
-    });
+    );
 
-    const outputText = response.output_text ?? response.output?.[0]?.content?.[0]?.text ?? "";
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: `OpenAI request failed with status ${response.status}.` },
+        { status: 500 },
+      );
+    }
+
+    const payload = await response.json();
+    const outputText = extractOutputText(payload);
     const spec = JSON.parse(outputText) as GameSpecV1;
     validateSpec(spec);
     return NextResponse.json(spec);
