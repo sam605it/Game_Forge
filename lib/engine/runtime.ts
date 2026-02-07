@@ -5,6 +5,12 @@ export type MiniGolfRuntime = {
   dispose: () => void;
 };
 
+export type MiniGolfOptions = {
+  showHud?: boolean;
+  backgroundColor?: string;
+  onStatsChange?: (stats: { strokes: number; holeIndex: number; holeCount: number }) => void;
+};
+
 type BallState = {
   pos: [number, number];
   vel: [number, number];
@@ -51,7 +57,11 @@ function getHoleProps(value: unknown): HoleProps | null {
   return { holeIndex: value.holeIndex };
 }
 
-export function runMiniGolf(spec: GameSpec, canvas: HTMLCanvasElement): MiniGolfRuntime {
+export function runMiniGolf(
+  spec: GameSpec,
+  canvas: HTMLCanvasElement,
+  options: MiniGolfOptions = {},
+): MiniGolfRuntime {
   const context = canvas.getContext("2d");
   if (!context) {
     return { dispose: () => {} };
@@ -79,6 +89,8 @@ export function runMiniGolf(spec: GameSpec, canvas: HTMLCanvasElement): MiniGolf
   let dragStart: [number, number] | null = null;
   let dragEnd: [number, number] | null = null;
   let rafId = 0;
+  let lastStrokeCount = -1;
+  let lastHoleIndex = -1;
 
   function applyShot() {
     if (!dragStart || !dragEnd) return;
@@ -183,6 +195,19 @@ export function runMiniGolf(spec: GameSpec, canvas: HTMLCanvasElement): MiniGolf
         ballState.sunk = false;
       }
     }
+
+    if (
+      options.onStatsChange &&
+      (ballState.strokes !== lastStrokeCount || ballState.holeIndex !== lastHoleIndex)
+    ) {
+      lastStrokeCount = ballState.strokes;
+      lastHoleIndex = ballState.holeIndex;
+      options.onStatsChange({
+        strokes: ballState.strokes,
+        holeIndex: ballState.holeIndex,
+        holeCount: holeEntities.length,
+      });
+    }
   }
 
   function drawEntity(entity: GameSpec["entities"][number]) {
@@ -203,7 +228,7 @@ export function runMiniGolf(spec: GameSpec, canvas: HTMLCanvasElement): MiniGolf
 
   function render() {
     context.clearRect(0, 0, canvas.width, canvas.height);
-    context.fillStyle = "#F1F5F9";
+    context.fillStyle = options.backgroundColor ?? "#F1F5F9";
     context.fillRect(0, 0, canvas.width, canvas.height);
 
     decorationEntities.forEach(drawEntity);
@@ -223,7 +248,9 @@ export function runMiniGolf(spec: GameSpec, canvas: HTMLCanvasElement): MiniGolf
       context.stroke();
     }
 
-    drawHud();
+    if (options.showHud !== false) {
+      drawHud();
+    }
   }
 
   function loop() {
