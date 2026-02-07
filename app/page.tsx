@@ -165,11 +165,19 @@ export default function Page() {
     }
     const shareText = `Game Forge: ${lastMessage} (Strokes: ${strokes})`;
     if (navigator.share) {
-      await navigator.share({ title: "Game Forge", text: shareText });
-      return;
+      try {
+        await navigator.share({ title: "Game Forge", text: shareText });
+        return;
+      } catch (error) {
+        console.warn("Share failed, falling back to clipboard.", error);
+      }
     }
     if (navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(shareText);
+      try {
+        await navigator.clipboard.writeText(shareText);
+      } catch (error) {
+        console.warn("Clipboard write failed.", error);
+      }
     }
   };
 

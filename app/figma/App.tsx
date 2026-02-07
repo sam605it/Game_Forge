@@ -10,12 +10,14 @@ export default function App() {
   const [gameSpec, setGameSpec] = useState<GameSpec | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const createMessageId = () =>
+    globalThis.crypto?.randomUUID?.() ?? `msg-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
   async function handleSend(text: string) {
     setIsTyping(true);
 
     const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
+      id: createMessageId(),
       role: "user",
       content: text,
     };
@@ -38,7 +40,7 @@ export default function App() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: createMessageId(),
           role: "assistant",
           content: `Generated ${spec.template} with ${spec.theme.skin} theme.`,
         },
@@ -48,7 +50,7 @@ export default function App() {
       setMessages((prev) => [
         ...prev,
         {
-          id: crypto.randomUUID(),
+          id: createMessageId(),
           role: "assistant",
           content: "Sorry, I could not generate that game.",
         },
