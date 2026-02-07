@@ -49,7 +49,7 @@ export function buildMiniGolfSpec(requirements: RequirementList): GameSpec {
     id: "golf-ball",
     type: "golf_ball",
     pos: holes[0].tee,
-    size: [28, 28],
+    size: [72, 72],
     sprite: { iconId: ballIcon },
     props: { holeIndex: 0 },
   });
@@ -59,7 +59,7 @@ export function buildMiniGolfSpec(requirements: RequirementList): GameSpec {
       id: `hole-${hole.index}`,
       type: "hole",
       pos: hole.position,
-      size: [32, 32],
+      size: [84, 84],
       sprite: { iconId: holeIcon },
       props: { holeIndex: hole.index, tee: hole.tee },
     });
@@ -94,7 +94,7 @@ export function buildMiniGolfSpec(requirements: RequirementList): GameSpec {
       id: `decor-${item}-${index}`,
       type: item,
       pos: [x, y],
-      size: [36, 36],
+      size: [84, 84],
       sprite: { iconId },
     });
   });
