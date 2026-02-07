@@ -53,7 +53,7 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
   }, [spec]);
 
   return (
-    <div className="flex h-full flex-col gap-4 rounded-3xl border border-white/10 bg-slate-950/60 p-5 text-white shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+    <div className="flex h-full min-h-0 flex-col gap-4 rounded-3xl border border-white/10 bg-slate-950/60 p-5 text-white shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold">Game Preview</h2>
@@ -99,8 +99,8 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
         </div>
       </div>
 
-      <div className="flex-1 rounded-2xl border border-white/10 bg-black/40 p-3">
-        <div className="relative h-full w-full overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
+      <div className="flex-1 min-h-0 rounded-2xl border border-white/10 bg-black/40 p-3">
+        <div className="relative h-full max-h-[60vh] w-full overflow-hidden rounded-2xl border border-white/10 bg-slate-900">
           <canvas ref={canvasRef} className="h-full w-full" />
           {!isPlayable && (
             <div className="absolute inset-0 flex items-center justify-center text-sm text-white/60">
