@@ -86,17 +86,22 @@ export function buildMiniGolfSpec(requirements: RequirementList): GameSpec {
     (item) => !requirements.exclusions.some((exclusion) => item.includes(exclusion)),
   );
 
-  includeDecorations.forEach((item, index) => {
-    const iconId = resolveIconId({ semantic: item, role: "decoration", palette: themePalette });
-    const x = bounds.x + 140 + index * 60;
-    const y = bounds.y + 120 + (index % 3) * 80;
-    entities.push({
-      id: `decor-${item}-${index}`,
-      type: item,
-      pos: [x, y],
-      size: [84, 84],
-      sprite: { iconId },
-    });
+  let decorIndex = 0;
+  includeDecorations.forEach((item) => {
+    const count = requirements.inclusionCounts[item] ?? 1;
+    for (let i = 0; i < count; i += 1) {
+      const iconId = resolveIconId({ semantic: item, role: "decoration", palette: themePalette });
+      const x = bounds.x + 140 + decorIndex * 60;
+      const y = bounds.y + 120 + (decorIndex % 3) * 80;
+      entities.push({
+        id: `decor-${item}-${decorIndex}`,
+        type: item,
+        pos: [x, y],
+        size: [84, 84],
+        sprite: { iconId },
+      });
+      decorIndex += 1;
+    }
   });
 
   const layout = {

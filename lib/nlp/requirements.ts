@@ -13,6 +13,7 @@ export type RequirementList = {
     bumpers?: number;
   };
   inclusions: string[];
+  inclusionCounts: Record<string, number>;
   exclusions: string[];
   constraints: string[];
   raw: string;
@@ -76,6 +77,34 @@ const inclusionKeywords = [
   ...Object.keys(semanticMap),
 ];
 
+const inclusionCanonicalMap: Record<string, string> = {
+  trees: "tree",
+  rocks: "rock",
+  bushes: "bush",
+  bumpers: "bumper",
+  enemies: "enemy",
+};
+
+const quantityPhrases: Array<{ pattern: string; count: number }> = [
+  { pattern: "\\ba\\s+lot of\\b", count: 12 },
+  { pattern: "\\blots of\\b", count: 12 },
+  { pattern: "\\bmany\\b", count: 12 },
+  { pattern: "\\bseveral\\b", count: 6 },
+  { pattern: "\\btons of\\b", count: 14 },
+  { pattern: "\\bplenty of\\b", count: 10 },
+  { pattern: "\\ba\\s+couple of\\b", count: 2 },
+  { pattern: "\\bcouple of\\b", count: 2 },
+  { pattern: "\\bfew\\b", count: 3 },
+  { pattern: "\\bsingle\\b", count: 1 },
+  { pattern: "\\bone\\b", count: 1 },
+  { pattern: "\\ba\\b", count: 1 },
+  { pattern: "\\ban\\b", count: 1 },
+];
+
+const inclusionDefaultCounts: Record<string, number> = {
+  tree: 2,
+};
+
 const constraintKeywords = ["easy", "hard", "low gravity", "high gravity", "fast", "slow"];
 
 function parseNumberToken(token: string): number | undefined {
@@ -125,11 +154,72 @@ function extractInclusions(input: string, exclusions: string[]): string[] {
   const lower = input.toLowerCase();
   const found: string[] = [];
   inclusionKeywords.forEach((keyword) => {
-    if (lower.includes(keyword) && !exclusions.some((ex) => keyword.includes(ex))) {
-      found.push(keyword);
+    const escaped = escapeRegex(keyword);
+    const keywordPattern = new RegExp(`(?:^|\\W)${escaped}(?:$|\\W)`, "i");
+    if (keywordPattern.test(lower) && !exclusions.some((ex) => keyword.includes(ex))) {
+      found.push(inclusionCanonicalMap[keyword] ?? keyword);
     }
   });
   return Array.from(new Set(found));
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getPluralForms(noun: string): string[] {
+  if (noun.endsWith("y")) return [noun, `${noun.slice(0, -1)}ies`, `${noun}s`];
+  if (noun.endsWith("s")) return [noun];
+  return [noun, `${noun}s`];
+}
+
+function findQuantityCount(input: string, nounPattern: string): number | undefined {
+  for (const phrase of quantityPhrases) {
+    const pattern = new RegExp(`${phrase.pattern}\\s+${nounPattern}`, "i");
+    if (pattern.test(input)) {
+      return phrase.count;
+    }
+  }
+  return undefined;
+}
+
+function hasPluralMention(input: string, noun: string): boolean {
+  const pluralForms = getPluralForms(noun).map((form) => escapeRegex(form));
+  const pattern = new RegExp(`\\b(${pluralForms.join("|")})\\b`, "i");
+  return pattern.test(input);
+}
+
+function extractInclusionCounts(input: string, inclusions: string[], exclusions: string[]): Record<string, number> {
+  const counts: Record<string, number> = {};
+  const lower = input.toLowerCase();
+
+  inclusions.forEach((item) => {
+    if (exclusions.some((exclusion) => item.includes(exclusion))) return;
+    const pluralForms = getPluralForms(item).map((form) => escapeRegex(form)).join("|");
+    const nounPattern = `\\b(?:${pluralForms})\\b`;
+    const numericCount = extractCount(lower, nounPattern);
+    if (numericCount) {
+      counts[item] = numericCount;
+      return;
+    }
+
+    const quantityCount = findQuantityCount(lower, nounPattern);
+    if (quantityCount !== undefined) {
+      counts[item] = quantityCount;
+      return;
+    }
+
+    if (item in inclusionDefaultCounts) {
+      counts[item] = inclusionDefaultCounts[item];
+      return;
+    }
+
+    if (hasPluralMention(lower, item)) {
+      counts[item] = 2;
+    }
+  });
+
+  return counts;
 }
 
 function extractPalette(input: string): string {
@@ -179,6 +269,7 @@ export function parsePromptToRequirements(prompt: string): RequirementList {
   const lower = prompt.toLowerCase();
   const exclusions = extractExclusions(lower);
   const inclusions = extractInclusions(lower, exclusions);
+  const inclusionCounts = extractInclusionCounts(lower, inclusions, exclusions);
 
   return {
     gameType: extractGameType(lower),
@@ -193,6 +284,7 @@ export function parsePromptToRequirements(prompt: string): RequirementList {
       bumpers: extractCount(lower, "bumpers?") ?? extractCount(lower, "bumper"),
     },
     inclusions,
+    inclusionCounts,
     exclusions,
     constraints: extractConstraints(lower),
     raw: prompt,
