@@ -184,13 +184,19 @@ export default function Page() {
                   </div>
                 ))}
               </div>
-              <form onSubmit={handleSubmit} className="mt-4">
+              <form onSubmit={handleSubmit} className="mt-4 flex items-center gap-3">
                 <input
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   placeholder="Describe a game or action..."
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-inner outline-none focus:border-slate-400"
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-inner outline-none focus:border-slate-400"
                 />
+                <button
+                  type="submit"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-500 shadow-sm transition hover:bg-slate-50"
+                >
+                  Send
+                </button>
               </form>
             </section>
 
