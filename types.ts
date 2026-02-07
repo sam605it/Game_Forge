@@ -14,7 +14,7 @@ export type GameCategory =
 
 export type EntityRender = {
   type: "shape" | "emoji";
-  shape?: "rect" | "circle";
+  shape?: "rect" | "circle" | "line";
   emoji?: string;
   color?: string;
 };
@@ -38,7 +38,7 @@ export type Entity = {
 };
 
 export type Rule = {
-  type: "score" | "timer" | "collect" | "avoid" | "goal" | "laps";
+  type: "strokes" | "score" | "timer" | "win_on_goal" | "lose_on_timer";
   params: Record<string, any>;
 };
 
@@ -61,13 +61,14 @@ export type GameSpecV1 = {
   entities: Entity[];
   rules: Rule[];
   controls: {
-    scheme: "keyboard" | "touch" | "hybrid";
+    scheme: "mouse_drag_shot" | "click_shot" | "keyboard_move";
     mappings: {
       up?: string[];
       down?: string[];
       left?: string[];
       right?: string[];
       action?: string[];
+      reset?: string[];
     };
   };
   ui: {

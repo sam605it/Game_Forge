@@ -112,10 +112,16 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
 
       <div className="flex flex-wrap items-center justify-between gap-4 text-xs text-white/70">
         <div className="flex flex-wrap items-center gap-4">
-          {hudItems.some((item) => item.type === "score") && <span>Score: {score}</span>}
-          {hudItems.some((item) => item.type === "timer") && (
-            <span>Time: {formatTime(timeRemaining) ?? "--"}</span>
-          )}
+          {hudItems
+            .filter((item) => item.type === "score")
+            .map((item, index) => (
+              <span key={`score-${index}`}>{item.label ?? "Score"}: {score}</span>
+            ))}
+          {hudItems
+            .filter((item) => item.type === "timer")
+            .map((item, index) => (
+              <span key={`timer-${index}`}>{item.label ?? "Time"}: {formatTime(timeRemaining) ?? "--"}</span>
+            ))}
         </div>
         {message && (
           <div className="rounded-full border border-white/20 px-4 py-1 text-xs text-white/80">
@@ -126,7 +132,7 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
 
       {(status === "won" || status === "lost") && (
         <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm">
-          <span>{status === "won" ? "You won!" : "Game over."}</span>
+          <span>{status === "won" ? message ?? "You won!" : "Game over."}</span>
           <button
             type="button"
             onClick={() => engineRef.current?.reset()}
