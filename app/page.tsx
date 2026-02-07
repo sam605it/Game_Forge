@@ -17,8 +17,8 @@ function IconButton({ label, icon }: { label: string; icon: string }) {
 export default function Page() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200 text-slate-900">
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="rounded-3xl border border-slate-200 bg-white/80 shadow-xl backdrop-blur">
+      <div className="flex min-h-screen flex-col px-6 py-6">
+        <div className="flex flex-1 flex-col rounded-3xl border border-slate-200 bg-white/80 shadow-xl backdrop-blur">
           <header className="flex flex-wrap items-center justify-between gap-6 border-b border-slate-200 px-8 py-6">
             <div>
               <div className="text-2xl font-semibold">Game Forge</div>
@@ -39,7 +39,7 @@ export default function Page() {
             </div>
           </header>
 
-          <main className="px-8 py-8">
+          <main className="flex flex-1 min-h-0 px-8 py-8">
             <FigmaApp />
           </main>
 

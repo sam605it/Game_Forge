@@ -8,6 +8,25 @@ export type ZodType<T> = {
   optional: () => ZodType<T | undefined>;
 };
 
+export type Infer<T extends ZodType<unknown>> = T extends ZodType<infer U>
+  ? U
+  : never;
+
+type OptionalKeys<T extends Record<string, ZodType<unknown>>> = {
+  [K in keyof T]: undefined extends Infer<T[K]> ? K : never;
+}[keyof T];
+
+type RequiredKeys<T extends Record<string, ZodType<unknown>>> = Exclude<
+  keyof T,
+  OptionalKeys<T>
+>;
+
+type ObjectInfer<T extends Record<string, ZodType<unknown>>> = {
+  [K in RequiredKeys<T>]: Infer<T[K]>;
+} & {
+  [K in OptionalKeys<T>]?: Exclude<Infer<T[K]>, undefined>;
+};
+
 function createType<T>(parser: (input: unknown) => T): ZodType<T> {
   return {
     parse: parser,
@@ -70,7 +89,7 @@ const z = {
       };
     }),
   object: <T extends Record<string, ZodType<unknown>>>(shape: T) =>
-    createType<{ [K in keyof T]: T[K] extends ZodType<infer U> ? U : never }>((input) => {
+    createType<ObjectInfer<T>>((input) => {
       if (!isObject(input)) {
         throw new Error("Expected object");
       }
@@ -79,8 +98,12 @@ const z = {
         const schema = shape[key];
         result[key] = schema.parse((input as Record<string, unknown>)[key]);
       }
-      return result as { [K in keyof T]: T[K] extends ZodType<infer U> ? U : never };
+      return result as ObjectInfer<T>;
     }),
 };
+
+namespace z {
+  export type infer<T extends ZodType<unknown>> = Infer<T>;
+}
 
 export { z };
