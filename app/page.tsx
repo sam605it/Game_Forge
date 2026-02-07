@@ -1,7 +1,9 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { GameSpec } from "@/lib/gamespec/schema";
+import { runMiniGolf } from "@/lib/engine/runtime";
 
 const navItems = [
   { key: "forge", label: "FORGE", icon: ForgeIcon },
@@ -9,6 +11,49 @@ const navItems = [
   { key: "explore", label: "EXPLORE", icon: ExploreIcon },
   { key: "connect", label: "CONNECT", icon: ConnectIcon },
 ];
+
+function GameCanvas({
+  spec,
+  resetToken,
+  onStatsChange,
+}: {
+  spec: GameSpec | null;
+  resetToken: number;
+  onStatsChange?: (stats: { strokes: number; holeIndex: number; holeCount: number }) => void;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!spec || !canvas || spec.template !== "mini_golf") return;
+    const runtime = runMiniGolf(spec, canvas, {
+      showHud: false,
+      backgroundColor: "#7da047",
+      onStatsChange,
+    });
+    return () => runtime.dispose();
+  }, [onStatsChange, resetToken, spec]);
+
+  if (!spec) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-sm text-white/80">
+        Describe a game to begin 🎮
+      </div>
+    );
+  }
+
+  if (spec.template !== "mini_golf") {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-sm text-white/80">
+        Template scaffolded for {spec.template}.
+      </div>
+    );
+  }
+
+  return (
+    <canvas ref={canvasRef} className="h-full w-full rounded-2xl" />
+  );
+}
 
 function ForgeIcon() {
   return (
@@ -59,60 +104,55 @@ function ShareIcon() {
   );
 }
 
-const BunnyIcon = () => (
-  <svg width="88" height="88" viewBox="0 0 128 128" fill="none" aria-hidden>
-    <ellipse cx="45" cy="23" rx="13" ry="28" fill="#F7F7FB" stroke="#2B2B2B" strokeWidth="4" />
-    <ellipse cx="83" cy="23" rx="13" ry="28" fill="#F7F7FB" stroke="#2B2B2B" strokeWidth="4" />
-    <ellipse cx="45" cy="30" rx="6" ry="16" fill="#FFC8D9" />
-    <ellipse cx="83" cy="30" rx="6" ry="16" fill="#FFC8D9" />
-    <circle cx="64" cy="72" r="34" fill="#F7F7FB" stroke="#2B2B2B" strokeWidth="4" />
-    <circle cx="52" cy="68" r="4" fill="#2B2B2B" />
-    <circle cx="76" cy="68" r="4" fill="#2B2B2B" />
-    <path d="M64 74C60 74 57 77 57 81C57 85 60 88 64 88C68 88 71 85 71 81C71 77 68 74 64 74Z" fill="#FF8FB2" />
-    <path d="M53 92C58 97 70 97 75 92" stroke="#2B2B2B" strokeWidth="4" strokeLinecap="round" />
-  </svg>
-);
-
-const CoursePreview = () => (
-  <div className="relative h-full w-full overflow-hidden rounded-2xl border border-[#d7d2dc] bg-gradient-to-br from-[#9ebf5e] via-[#87a94c] to-[#6a8b3c]">
-    <div className="absolute inset-0 opacity-70">
-      <div className="absolute left-8 top-8 h-20 w-32 rounded-full bg-[#6f8f3e] blur-sm" />
-      <div className="absolute right-10 top-10 h-24 w-28 rounded-full bg-[#6f8f3e] blur-sm" />
-      <div className="absolute bottom-10 left-12 h-16 w-32 rounded-full bg-[#6f8f3e] blur-sm" />
-      <div className="absolute bottom-14 right-14 h-12 w-24 rounded-full bg-[#6f8f3e] blur-sm" />
-    </div>
-    <div className="absolute inset-7 rounded-[26px] border-[12px] border-[#d3b767] bg-[#82a54a] shadow-inner">
-      <div className="absolute left-1/2 top-6 h-14 w-14 -translate-x-1/2 rounded-full bg-[#bdc1c4] shadow-md" />
-      <div className="absolute left-16 top-24 h-10 w-10 rounded-full bg-[#a3c56b]" />
-      <div className="absolute right-20 top-16 h-10 w-10 rounded-full bg-[#a3c56b]" />
-      <div className="absolute right-14 bottom-14 h-12 w-12 rounded-full bg-[#a3c56b]" />
-      <div className="absolute right-12 top-28 h-8 w-8 rounded-full bg-[#d0d8c2]" />
-      <div className="absolute bottom-16 left-1/2 flex -translate-x-1/2 items-center justify-center drop-shadow-md">
-        <BunnyIcon />
-      </div>
-      <div className="absolute bottom-10 left-[55%] h-4 w-4 rounded-full bg-white shadow" />
-      <div className="absolute right-10 bottom-20 flex items-center gap-1">
-        <div className="h-12 w-1.5 rounded-full bg-[#3b2f2f]" />
-        <div className="h-4 w-4 -translate-y-1 rounded-sm bg-[#f5c13c]" />
-        <div className="h-4 w-4 -translate-y-1 rounded-sm bg-[#e84c3d]" />
-      </div>
-    </div>
-  </div>
-);
-
 export default function Page() {
+  const initialPrompt = "Make mini golf";
   const [activeNav, setActiveNav] = useState("forge");
-  const [messages, setMessages] = useState(["Make mini golf"]);
+  const [messages, setMessages] = useState([initialPrompt]);
   const [input, setInput] = useState("");
-  const [strokes, setStrokes] = useState(2);
+  const [strokes, setStrokes] = useState(0);
+  const [spec, setSpec] = useState<GameSpec | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [resetToken, setResetToken] = useState(0);
   const lastMessage = useMemo(() => messages[messages.length - 1] ?? "", [messages]);
+  const handleStatsChange = useCallback(
+    (stats: { strokes: number; holeIndex: number; holeCount: number }) => {
+      setStrokes(stats.strokes);
+    },
+    [],
+  );
+
+  const fetchGameSpec = useCallback(async (prompt: string) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to generate game.");
+      }
+      const data = (await response.json()) as GameSpec;
+      setSpec(data);
+    } catch {
+      setSpec(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGameSpec(initialPrompt);
+  }, [fetchGameSpec, initialPrompt]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!input.trim()) {
       return;
     }
-    setMessages((prev) => [...prev, input.trim()]);
+    const nextMessage = input.trim();
+    setMessages((prev) => [...prev, nextMessage]);
+    fetchGameSpec(nextMessage);
     setInput("");
   };
 
@@ -131,13 +171,13 @@ export default function Page() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1c1c22] text-white">
-      <div className="relative min-h-screen overflow-hidden px-10 py-8">
+    <div className="min-h-screen bg-[#1b1b21] text-white">
+      <div className="relative min-h-screen overflow-hidden px-8 py-7">
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.12),_transparent_58%)]" />
-        <div className="mx-auto flex min-h-[86vh] max-w-[1250px] flex-col gap-7">
+        <div className="mx-auto flex min-h-[86vh] max-w-[1280px] flex-col gap-6">
           <header className="flex flex-wrap items-center justify-between gap-6">
-            <div className="text-[26px] font-semibold tracking-[0.35em]">GAME FORGE</div>
-            <nav className="flex items-center gap-10 text-[13px] font-semibold tracking-[0.3em] text-white/60">
+            <div className="text-[22px] font-semibold tracking-[0.45em] text-white/90">GAME FORGE</div>
+            <nav className="flex items-center gap-10 text-[12px] font-semibold tracking-[0.35em] text-white/60">
               {navItems.map((item) => (
                 <button
                   key={item.key}
@@ -156,7 +196,7 @@ export default function Page() {
               ))}
             </nav>
             <div className="flex items-center gap-3">
-              <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[13px] font-semibold text-white/80">
+              <div className="rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[12px] font-semibold text-white/80">
                 3 Creations
               </div>
               <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/40 bg-gradient-to-br from-amber-200 via-pink-200 to-purple-200 text-lg">
@@ -165,41 +205,49 @@ export default function Page() {
             </div>
           </header>
 
-          <main className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-[300px_1fr]">
+          <main className="grid flex-1 grid-cols-1 gap-6 md:grid-cols-[310px_1fr]">
             <section className="flex flex-col rounded-[28px] border border-white/40 bg-gradient-to-b from-white via-[#f7f6fb] to-[#ededf5] p-4 text-[#3b3b45] shadow-[0_24px_50px_rgba(0,0,0,0.35)]">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2 text-base font-semibold">
-                  <span className="text-lg">⚡</span>
-                  Chatbox
-                </div>
+                <div className="text-sm font-semibold">Chatbox</div>
                 <span className="text-slate-500">▾</span>
               </div>
-              <div className="mt-4 flex-1 rounded-2xl border border-slate-200 bg-white/70 p-3">
-                {messages.map((message, index) => (
-                  <div
-                    key={`${message}-${index}`}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm"
-                  >
-                    {message}
-                  </div>
-                ))}
+              <div className="mt-3 flex-1 rounded-2xl border border-slate-200 bg-white/70 p-3">
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-sm">
+                  {lastMessage || "Make mini golf"}
+                </div>
               </div>
-              <form onSubmit={handleSubmit} className="mt-4">
+              <form onSubmit={handleSubmit} className="mt-4 flex items-center gap-2">
                 <input
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
                   placeholder="Describe a game or action..."
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-inner outline-none focus:border-slate-400"
+                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600 shadow-inner outline-none focus:border-slate-400"
                 />
+                <button
+                  type="submit"
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-500 shadow-sm transition hover:bg-slate-50"
+                >
+                  Send
+                </button>
               </form>
             </section>
 
             <section className="flex flex-col rounded-[28px] border border-white/40 bg-gradient-to-b from-white via-[#f7f6fb] to-[#ededf5] p-5 text-slate-800 shadow-[0_24px_50px_rgba(0,0,0,0.35)]">
               <div className="flex-1">
                 <div className="aspect-[16/10] rounded-2xl border border-slate-200 bg-white p-4">
-                  <CoursePreview />
+                  <div className="h-full w-full overflow-hidden rounded-2xl border border-[#d7d2dc] bg-[#92b255]">
+                    <div className="relative h-full w-full rounded-2xl border-[10px] border-[#d8b86c] bg-[#7da047]">
+                      <div className="absolute inset-0">
+                        <GameCanvas
+                          spec={spec}
+                          resetToken={resetToken}
+                          onStatsChange={handleStatsChange}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-semibold text-slate-500">
+                <div className="mt-4 flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-6 py-4 text-xs font-semibold text-slate-500">
                   <div>Strokes: {strokes}</div>
                   <button
                     type="button"
@@ -210,19 +258,27 @@ export default function Page() {
                     Share
                   </button>
                 </div>
+                {isLoading && (
+                  <div className="mt-3 text-xs text-slate-400">
+                    Forging a new game...
+                  </div>
+                )}
               </div>
-              <div className="mt-6 flex justify-center gap-4">
+              <div className="mt-6 flex justify-end gap-4">
                 <button
                   type="button"
-                  onClick={() => setStrokes(0)}
-                  className="rounded-xl border border-slate-200 bg-white px-6 py-2 text-sm font-semibold text-slate-500 shadow-sm transition hover:bg-slate-50"
+                  onClick={() => {
+                    setStrokes(0);
+                    setResetToken((value) => value + 1);
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-6 py-2 text-xs font-semibold text-slate-500 shadow-sm transition hover:bg-slate-50"
                 >
                   Reset
                 </button>
                 <button
                   type="button"
-                  onClick={() => setStrokes((prev) => prev + 1)}
-                  className="rounded-xl border border-slate-200 bg-white px-6 py-2 text-sm font-semibold text-slate-500 shadow-sm transition hover:bg-slate-50"
+                  onClick={() => {}}
+                  className="rounded-xl border border-slate-200 bg-white px-6 py-2 text-xs font-semibold text-slate-500 shadow-sm transition hover:bg-slate-50"
                 >
                   Save Game
                 </button>
