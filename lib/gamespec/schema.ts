@@ -48,6 +48,11 @@ export const GameSpecSchema = z.object({
     maxStrokes: z.number().optional(),
   }),
   notes: z.array(z.string()).optional(),
+  error: z
+    .object({
+      message: z.string(),
+    })
+    .optional(),
 });
 
 export type GameSpec = z.infer<typeof GameSpecSchema>;

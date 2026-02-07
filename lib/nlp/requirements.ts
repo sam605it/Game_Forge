@@ -34,6 +34,16 @@ const numberWords: Record<string, number> = {
   twelve: 12,
 };
 
+export const GAME_TEMPLATES = [
+  "mini_golf",
+  "pinball",
+  "topdown_shooter",
+  "platformer",
+  "grid_puzzle",
+] as const;
+
+export const DEFAULT_TEMPLATE: RequirementList["gameType"] = "mini_golf";
+
 const gameTypeKeywords: Array<{ keyword: string; type: RequirementList["gameType"] }> = [
   { keyword: "mini golf", type: "mini_golf" },
   { keyword: "minigolf", type: "mini_golf" },
@@ -45,6 +55,22 @@ const gameTypeKeywords: Array<{ keyword: string; type: RequirementList["gameType
   { keyword: "grid puzzle", type: "grid_puzzle" },
   { keyword: "puzzle", type: "grid_puzzle" },
 ];
+
+function normalizeTemplate(value?: string): RequirementList["gameType"] | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  return GAME_TEMPLATES.includes(normalized as RequirementList["gameType"])
+    ? (normalized as RequirementList["gameType"])
+    : null;
+}
+
+export function resolveTemplate(prompt: string, requested?: string): RequirementList["gameType"] {
+  const normalized = normalizeTemplate(requested);
+  if (normalized) return normalized;
+  const lower = prompt.toLowerCase();
+  const match = gameTypeKeywords.find((entry) => lower.includes(entry.keyword));
+  return match?.type ?? DEFAULT_TEMPLATE;
+}
 
 const paletteKeywords = [
   "pastel",
@@ -255,12 +281,6 @@ function extractThemeSkin(input: string): string {
   return found ?? "classic";
 }
 
-function extractGameType(input: string): RequirementList["gameType"] {
-  const lower = input.toLowerCase();
-  const match = gameTypeKeywords.find((entry) => lower.includes(entry.keyword));
-  return match?.type ?? "mini_golf";
-}
-
 function extractConstraints(input: string): string[] {
   const lower = input.toLowerCase();
   return constraintKeywords.filter((keyword) => lower.includes(keyword));
@@ -273,7 +293,7 @@ export function parsePromptToRequirements(prompt: string): RequirementList {
   const inclusionCounts = extractInclusionCounts(lower, inclusions, exclusions);
 
   return {
-    gameType: extractGameType(lower),
+    gameType: resolveTemplate(lower),
     theme: {
       skin: extractThemeSkin(lower),
       palette: extractPalette(lower),

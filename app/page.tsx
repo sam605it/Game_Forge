@@ -45,9 +45,10 @@ function GameCanvas({
   }
 
   if (spec.template !== "mini_golf") {
+    const templateLabel = spec.template || "mini_golf";
     return (
       <div className="flex h-full w-full items-center justify-center text-sm text-white/80">
-        Template scaffolded for {spec.template}.
+        Template scaffolded for {templateLabel}.
       </div>
     );
   }
@@ -114,6 +115,7 @@ export default function Page() {
   const [strokes, setStrokes] = useState(0);
   const [spec, setSpec] = useState<GameSpec | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState(0);
   const lastMessage = useMemo(() => messages[messages.length - 1] ?? "", [messages]);
   const handleStatsChange = useCallback(
@@ -131,6 +133,7 @@ export default function Page() {
 
   const fetchGameSpec = useCallback(async (prompt: string) => {
     setIsLoading(true);
+    setErrorMessage(null);
     try {
       const response = await fetch("/api/game", {
         method: "POST",
@@ -141,10 +144,14 @@ export default function Page() {
         throw new Error("Failed to generate game.");
       }
       const data = (await response.json()) as GameSpec;
+      if (data.error?.message) {
+        setErrorMessage(data.error.message);
+      }
       applySpec(data);
     } catch {
       const requirements = parsePromptToRequirements(prompt);
       applySpec(buildGameSpec(requirements));
+      setErrorMessage("We hit an issue generating that game. Showing a fallback build.");
     } finally {
       setIsLoading(false);
     }
@@ -278,6 +285,12 @@ export default function Page() {
                 {isLoading && (
                   <div className="mt-3 text-xs text-slate-400">
                     Forging a new game...
+                  </div>
+                )}
+                {errorMessage && (
+                  <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                    <div className="font-semibold text-amber-800">Fallback game loaded</div>
+                    <div>{errorMessage}</div>
                   </div>
                 )}
               </div>
