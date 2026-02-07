@@ -32,6 +32,8 @@ export const DEFAULT_CONSTRAINTS: GameSpecV1["constraints"] = {
   targetFPS: 60,
   maxRules: 128,
   maxParticles: 300,
+  requiredEntities: [],
+  bannedEntities: [],
 };
 
 export const SUPPORTED_COMPONENTS = [

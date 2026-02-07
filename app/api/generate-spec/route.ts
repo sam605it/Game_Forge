@@ -4,6 +4,7 @@ import { CATEGORIES, type Category, type GameSpecV1 } from "@/app/gamespec/types
 import { CATEGORY_EXAMPLES } from "@/app/gamespec/examples";
 import { PLAYBOOK_SUMMARY } from "@/app/gamespec/playbooks";
 import { applyCategoryPreset } from "@/app/gamespec/presets";
+import { parsePromptContract, validateAndSanitizeSpec } from "@/app/gamespec/promptContract";
 
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
 
@@ -22,6 +23,8 @@ metadata.version must be "1.0".
 Always include at least one controllable entity with InputController.
 Always include at least one Goal + at least one rule that can end a round.
 assets values must be placeholder IDs like sprite:foo and sfx:foo.
+You MUST satisfy promptContract.mustHave and MUST NOT include promptContract.mustNotHave anywhere. If unsure, exclude.
+Templates may not add decorations/obstacles not requested if they conflict with promptContract.mustNotHave.
 
 Category Playbook Summary:
 ${PLAYBOOK_SUMMARY}`;
@@ -31,7 +34,7 @@ const safeJsonParse = (text: string): unknown => {
   return JSON.parse(cleaned);
 };
 
-const buildFallbackSpec = (categoryHint: Category, prompt: string): GameSpecV1 => {
+const buildFallbackSpec = (categoryHint: Category, prompt: string, promptContract = parsePromptContract(prompt)): GameSpecV1 => {
   const lower = prompt.toLowerCase();
   const inferredCategory: Category = lower.includes("race")
     ? "racing"
@@ -60,10 +63,17 @@ const buildFallbackSpec = (categoryHint: Category, prompt: string): GameSpecV1 =
                           : categoryHint;
 
   const base = CATEGORY_EXAMPLES[inferredCategory] ?? CATEGORY_EXAMPLES[categoryHint];
-  return applyCategoryPreset({
+  const withContract: GameSpecV1 = {
     ...base,
     metadata: { ...base.metadata, title: `${base.metadata.title} (fallback)` },
-  });
+    constraints: {
+      ...base.constraints,
+      requiredEntities: promptContract.mustHave,
+      bannedEntities: promptContract.mustNotHave,
+    },
+    promptContract,
+  };
+  return validateAndSanitizeSpec(applyCategoryPreset(withContract)).spec;
 };
 
 async function callOpenAI(messages: Array<{ role: "system" | "user"; content: string }>) {
@@ -105,10 +115,20 @@ async function callOpenAI(messages: Array<{ role: "system" | "user"; content: st
   return { ok: true as const, content };
 }
 
-function parseAndNormalize(candidate: unknown) {
+function parseAndNormalize(candidate: unknown, promptContract: ReturnType<typeof parsePromptContract>) {
   const validated = parseGameSpecV1(candidate);
   if (validated.ok !== true) return validated;
-  return { ok: true as const, value: applyCategoryPreset(validated.value) };
+  const withContract: GameSpecV1 = {
+    ...validated.value,
+    constraints: {
+      ...validated.value.constraints,
+      requiredEntities: promptContract.mustHave,
+      bannedEntities: promptContract.mustNotHave,
+    },
+    promptContract,
+  };
+  const sanitized = validateAndSanitizeSpec(applyCategoryPreset(withContract));
+  return { ok: true as const, value: sanitized.spec, report: sanitized.report };
 }
 
 export async function POST(request: Request) {
@@ -120,6 +140,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, errors: ["prompt is required."] }, { status: 400 });
     }
 
+    const promptContract = parsePromptContract(prompt);
+
     const categoryHint =
       typeof body.categoryHint === "string" &&
       (CATEGORIES as readonly string[]).includes(body.categoryHint)
@@ -129,7 +151,8 @@ export async function POST(request: Request) {
     const userInstruction = `User prompt: ${prompt}
 Category hint: ${categoryHint}
 Seed: ${typeof body.seed === "number" ? body.seed : "none"}
-Return only JSON for one category-specific, recognizable minigame.`;
+Return only JSON for one category-specific, recognizable minigame.
+promptContract: ${JSON.stringify(promptContract)}`;
 
     const first = await callOpenAI([
       { role: "system", content: SYSTEM_PROMPT },
@@ -138,7 +161,7 @@ Return only JSON for one category-specific, recognizable minigame.`;
 
     if (!first.ok) {
       if (first.missingApiKey) {
-        return NextResponse.json({ ok: true, spec: buildFallbackSpec(categoryHint, prompt), fallback: true });
+        return NextResponse.json({ ok: true, spec: buildFallbackSpec(categoryHint, prompt, promptContract), fallback: true, sanitizerReport: { contract: promptContract, removed: { count: 0, names: [] }, missingRequirements: [] } });
       }
       return NextResponse.json({ ok: false, errors: first.errors }, { status: 500 });
     }
@@ -150,9 +173,9 @@ Return only JSON for one category-specific, recognizable minigame.`;
       return NextResponse.json({ ok: false, errors: ["Model response was not valid JSON."] }, { status: 422 });
     }
 
-    const normalized = parseAndNormalize(parsed);
+    const normalized = parseAndNormalize(parsed, promptContract);
     if (normalized.ok === true) {
-      return NextResponse.json({ ok: true, spec: normalized.value });
+      return NextResponse.json({ ok: true, spec: normalized.value, sanitizerReport: normalized.report });
     }
 
     const repairPrompt = `Fix this JSON so it passes GameSpec v1 validation.
@@ -172,9 +195,9 @@ Return corrected JSON only.`;
 
     try {
       const repaired = safeJsonParse(second.content);
-      const repairedNormalized = parseAndNormalize(repaired);
+      const repairedNormalized = parseAndNormalize(repaired, promptContract);
       if (repairedNormalized.ok === true) {
-        return NextResponse.json({ ok: true, spec: repairedNormalized.value });
+        return NextResponse.json({ ok: true, spec: repairedNormalized.value, sanitizerReport: repairedNormalized.report });
       }
       return NextResponse.json({ ok: false, errors: repairedNormalized.errors }, { status: 422 });
     } catch {

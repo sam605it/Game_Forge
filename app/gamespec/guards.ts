@@ -70,6 +70,7 @@ export function parseGameSpecV1(input: unknown): ParseResult {
   const rulesRaw = Array.isArray(input.rules) ? input.rules : [];
   const assetsRaw = isRecord(input.assets) ? input.assets : {};
   const constraintsRaw = isRecord(input.constraints) ? input.constraints : {};
+  const promptContractRaw = isRecord(input.promptContract) ? input.promptContract : {};
 
   const category = metadataRaw.category;
   const isCategoryValid =
@@ -227,6 +228,12 @@ export function parseGameSpecV1(input: unknown): ParseResult {
       0,
       5000,
     ),
+    bannedEntities: Array.isArray(constraintsRaw.bannedEntities)
+      ? constraintsRaw.bannedEntities.filter((v): v is string => typeof v === "string")
+      : [...(DEFAULT_CONSTRAINTS.bannedEntities ?? [])],
+    requiredEntities: Array.isArray(constraintsRaw.requiredEntities)
+      ? constraintsRaw.requiredEntities.filter((v): v is string => typeof v === "string")
+      : [...(DEFAULT_CONSTRAINTS.requiredEntities ?? [])],
   };
 
   const normalized: GameSpecV1 = {
@@ -253,6 +260,20 @@ export function parseGameSpecV1(input: unknown): ParseResult {
     rules,
     assets: normalizedAssets,
     constraints: normalizedConstraints,
+    promptContract:
+      Array.isArray(promptContractRaw.mustHave) || Array.isArray(promptContractRaw.mustNotHave)
+        ? {
+            mustHave: Array.isArray(promptContractRaw.mustHave)
+              ? promptContractRaw.mustHave.filter((v): v is string => typeof v === "string")
+              : [],
+            mustNotHave: Array.isArray(promptContractRaw.mustNotHave)
+              ? promptContractRaw.mustNotHave.filter((v): v is string => typeof v === "string")
+              : [],
+            notes: Array.isArray(promptContractRaw.notes)
+              ? promptContractRaw.notes.filter((v): v is string => typeof v === "string")
+              : undefined,
+          }
+        : undefined,
   };
 
   if (normalized.entities.length > normalized.constraints.maxEntities) {

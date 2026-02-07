@@ -167,5 +167,12 @@ export type GameSpecV1 = {
     targetFPS: number;
     maxRules?: number;
     maxParticles?: number;
+    requiredEntities?: string[];
+    bannedEntities?: string[];
+  };
+  promptContract?: {
+    mustHave: string[];
+    mustNotHave: string[];
+    notes?: string[];
   };
 };
