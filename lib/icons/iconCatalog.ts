@@ -40,6 +40,8 @@ export const bases = [
   "pumpkin",
   "ghost",
   "skull",
+  "pig",
+  "robot",
   "tree",
   "rock",
   "bush",
@@ -79,7 +81,8 @@ export const palettes = [
   "golden",
 ];
 
-export const accessories = ["none", "sparkle", "stripe", "dot", "halo", "crown"];
+export const accessories = ["none"];
+export const ICON_VARIANT_COUNT = 1;
 
 export const paletteColors: Record<string, { primary: string; secondary: string; accent: string }> = {
   pastel: { primary: "#F7F7FB", secondary: "#FFC8D9", accent: "#9AD0EC" },
@@ -98,6 +101,7 @@ export const paletteColors: Record<string, { primary: string; secondary: string;
 export const semanticMap: Record<string, { category: IconCategory; base: string }> = {
   bunny: { category: "animals", base: "bunny" },
   rabbit: { category: "animals", base: "bunny" },
+  pig: { category: "animals", base: "pig" },
   cat: { category: "animals", base: "cat" },
   dog: { category: "animals", base: "dog" },
   dragon: { category: "fantasy", base: "dragon" },
@@ -112,7 +116,7 @@ export const semanticMap: Record<string, { category: IconCategory; base: string 
   wall: { category: "shapes", base: "wall" },
   pirate: { category: "symbols", base: "skull" },
   space: { category: "space", base: "planet" },
-  robot: { category: "tech", base: "controller" },
+  robot: { category: "tech", base: "robot" },
 };
 
 export type ResolveIconInput = {
@@ -135,8 +139,14 @@ export function resolveIconId({
   const normalized = semantic.toLowerCase();
   const mapping = semanticMap[normalized] ?? { category: "shapes" as IconCategory, base: "star" };
   const pal = palette && palettes.includes(palette) ? palette : "pastel";
-  const acc = accessory && accessories.includes(accessory) ? accessory : "none";
-  const varValue = typeof variant === "number" ? variant : Math.abs(hashString(`${semantic}:${role ?? ""}:${mood ?? ""}`)) % 6;
+  const accSeed = `${semantic}:${role ?? ""}:${mood ?? ""}:acc`;
+  const acc = accessory && accessories.includes(accessory)
+    ? accessory
+    : accessories[Math.abs(hashString(accSeed)) % accessories.length];
+  const varSeed = `${semantic}:${role ?? ""}:${mood ?? ""}:var`;
+  const varValue = typeof variant === "number"
+    ? variant
+    : Math.abs(hashString(varSeed)) % ICON_VARIANT_COUNT;
   return `cat:${mapping.category}/base:${mapping.base}/pal:${pal}/acc:${acc}/var:${varValue}`;
 }
 

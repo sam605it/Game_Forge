@@ -1,3 +1,5 @@
+import { bases, semanticMap } from "@/lib/icons/iconCatalog";
+
 export type RequirementList = {
   gameType: "mini_golf" | "pinball" | "topdown_shooter" | "platformer" | "grid_puzzle";
   theme: {
@@ -70,6 +72,8 @@ const inclusionKeywords = [
   "windmill",
   "bumpers",
   "enemies",
+  ...bases,
+  ...Object.keys(semanticMap),
 ];
 
 const constraintKeywords = ["easy", "hard", "low gravity", "high gravity", "fast", "slow"];
@@ -144,6 +148,7 @@ function extractThemeSkin(input: string): string {
   const knownSkins = [
     "bunny",
     "rabbit",
+    "pig",
     "pumpkin",
     "space",
     "pirate",

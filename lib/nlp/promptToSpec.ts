@@ -43,7 +43,7 @@ export function buildGameSpec(requirements: RequirementList): GameSpec {
         id: "player",
         type: "player",
         pos: [120, 260],
-        size: [40, 40],
+        size: [72, 72],
         sprite: {
           iconId: resolveIconId({
             semantic: requirements.theme.skin,

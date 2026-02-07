@@ -4,6 +4,8 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GameSpec } from "@/lib/gamespec/schema";
 import { runMiniGolf } from "@/lib/engine/runtime";
+import { parsePromptToRequirements } from "@/lib/nlp/requirements";
+import { buildGameSpec } from "@/lib/nlp/promptToSpec";
 
 const navItems = [
   { key: "forge", label: "FORGE", icon: ForgeIcon },
@@ -135,7 +137,8 @@ export default function Page() {
       const data = (await response.json()) as GameSpec;
       setSpec(data);
     } catch {
-      setSpec(null);
+      const requirements = parsePromptToRequirements(prompt);
+      setSpec(buildGameSpec(requirements));
     } finally {
       setIsLoading(false);
     }
