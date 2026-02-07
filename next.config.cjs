@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -7,6 +9,7 @@ const nextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       legacy: false,
+      "@shared": path.resolve(__dirname, "app/shared"),
     };
     return config;
   },
