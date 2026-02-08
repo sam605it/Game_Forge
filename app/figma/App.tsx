@@ -1,9 +1,10 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { ChatInterface } from "./components/ChatInterface";
 import { GamePreview } from "./components/GamePreview";
 import { GameConfig, ChatMessage } from '@/app/types';
+import { GameSpec } from '@/engine/spec/gameSpec';
 import { createInitialMessage, processUserMessage } from '@/app/lib/gameGenie';
 import { Toaster, toast } from 'sonner';
 import { motion, AnimatePresence } from "framer-motion";
@@ -30,6 +31,9 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([createInitialMessage()]);
   const [currentGameConfig, setCurrentGameConfig] = useState<GameConfig | undefined>(undefined);
   const [isTyping, setIsTyping] = useState(false);
+  const [gameSpec, setGameSpec] = useState<GameSpec | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [gameError, setGameError] = useState<string | null>(null);
   
   // Navigation & Theme State
   const [activeView, setActiveView] = useState<View>('forge');
@@ -61,6 +65,18 @@ export default function App() {
     };
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
+    setIsGenerating(true);
+    setGameError(null);
+
+    fetch('/api/game', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: text }),
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Game generation failed'))))
+      .then((data: GameSpec) => setGameSpec(data))
+      .catch((err: Error) => setGameError(err.message))
+      .finally(() => setIsGenerating(false));
 
     setTimeout(() => {
       const response = processUserMessage(text, currentGameConfig);
@@ -177,7 +193,12 @@ export default function App() {
                     </div>
                     <div className="flex items-center gap-3">
                        <button 
-                        onClick={() => setCurrentGameConfig({...currentGameConfig!, type: currentGameConfig?.type || 'snake'})}
+                        onClick={() =>
+                          setCurrentGameConfig((prev) => ({
+                            ...(prev ?? { type: 'snake' }),
+                            type: prev?.type ?? 'snake',
+                          }))
+                        }
                         className={`px-3 py-1 ${isDarkMode ? 'bg-[#151921] border-white/5 text-slate-400' : 'bg-slate-100 border-slate-200 text-slate-500'} border rounded text-[10px] font-bold tracking-wider hover:text-current transition-colors`}
                        >
                         RESET
@@ -189,7 +210,12 @@ export default function App() {
                   </div>
                   
                   <div className="w-full h-full pt-12">
-                     <GamePreview config={currentGameConfig} isDarkMode={isDarkMode} />
+                     <GamePreview
+                      gameSpec={gameSpec}
+                      isDarkMode={isDarkMode}
+                      isGenerating={isGenerating}
+                      error={gameError}
+                     />
                   </div>
                 </Panel>
               </PanelGroup>
