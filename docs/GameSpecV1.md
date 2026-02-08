@@ -21,7 +21,7 @@ All seven are required.
 - `arcade`
 - `action`
 - `racing`
-- `platforming`
+- `platformer`
 - `shooter`
 - `strategy`
 - `simulation`
@@ -33,7 +33,7 @@ All seven are required.
 
 - `sports` → `physics_2d`
 - `simulation` → `physics_2d`
-- `platforming` → `platformer_2d`
+- `platformer` → `platformer_2d`
 - `puzzle` → `grid_2d`
 - `word_trivia` → `grid_2d`
 - `rhythm_music` → `rhythm_2d`

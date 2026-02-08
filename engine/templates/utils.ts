@@ -77,6 +77,7 @@ export const createEntity = (params: {
   shape?: GameSpecV1["entities"][number]["render"]["shape"];
   collider?: GameSpecV1["entities"][number]["collider"];
   tags?: string[];
+  meta?: GameSpecV1["entities"][number]["meta"];
   renderType?: "shape" | "emoji";
   emoji?: string;
   velocity?: { x: number; y: number };
@@ -98,6 +99,7 @@ export const createEntity = (params: {
     },
     collider: params.collider ?? { type: shape === "circle" ? "circle" : "rect", isStatic: true },
     tags: params.tags,
+    meta: params.meta,
   };
 };
 

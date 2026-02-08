@@ -3,7 +3,7 @@ import type { Category, GameSpecV1, Template } from "./types";
 export const CATEGORY_TEMPLATE_MAP: Record<Category, Template> = {
   sports: "physics_2d",
   simulation: "physics_2d",
-  platforming: "platformer_2d",
+  platformer: "platformer_2d",
   puzzle: "grid_2d",
   word_trivia: "grid_2d",
   rhythm_music: "rhythm_2d",

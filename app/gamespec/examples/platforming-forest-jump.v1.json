@@ -2,7 +2,7 @@
   "metadata": {
     "version": "1.0",
     "title": "Forest Jump To Exit",
-    "category": "platforming",
+    "category": "platformer",
     "template": "platformer_2d",
     "mechanics": [
       "jump",

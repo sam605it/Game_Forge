@@ -1,8 +1,11 @@
 import type { GameSpecV1 } from "@/types";
+import type { Category } from "@/engine/categories";
 import type { ControlScheme, EntityKind, RuleType, WorldMode } from "./capabilities";
 
 export type Intent = {
+  prompt: string;
   templateId: string;
+  category: Category;
   modifiers: Record<string, string | number | boolean>;
   constraints: {
     include?: string[];

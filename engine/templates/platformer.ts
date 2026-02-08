@@ -20,7 +20,7 @@ export const platformer: TemplateDefinition = {
       id: `platformer-${seed}`,
       title: "Platform Dash",
       description: "Hop between platforms to reach the goal.",
-      category: "platforming",
+      category: "platformer",
       controls: "keyboard_move",
       gravity: [0, 160],
       friction: 0.9,

@@ -5,6 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "generate:emoji": "node scripts/generate-emoji-palette.js",
     "smoke:gamespec": "node scripts/gamespec-smoke.mjs",
     "test": "vitest run"
   },
