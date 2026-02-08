@@ -27,6 +27,22 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    if (!spec) {
+      engineRef.current?.dispose();
+      engineRef.current = null;
+      setStatus("idle");
+      setScore(0);
+      setTimeRemaining(null);
+      setMessage(null);
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.fillStyle = "#0f172a";
+        context.fillRect(0, 0, canvas.width, canvas.height);
+      }
+      return;
+    }
+
     engineRef.current?.dispose();
     engineRef.current = createEngine(spec, canvas, {
       onStateChange: (state) => {

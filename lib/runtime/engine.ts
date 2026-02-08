@@ -184,7 +184,7 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
     updateState({ status: nextStatus, message: message ?? state.message });
   };
 
-  const start = () => {
+  const startGame = () => {
     if (status === "running") return;
     if (status === "won" || status === "lost") {
       reset();
@@ -227,6 +227,15 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
+    const isMovementKey =
+      keyMap.up?.includes(event.code) ||
+      keyMap.down?.includes(event.code) ||
+      keyMap.left?.includes(event.code) ||
+      keyMap.right?.includes(event.code) ||
+      keyMap.action?.includes(event.code);
+    if (isMovementKey && status !== "running") {
+      startGame();
+    }
     if (keyMap.up?.includes(event.code)) input.up = true;
     if (keyMap.down?.includes(event.code)) input.down = true;
     if (keyMap.left?.includes(event.code)) input.left = true;
@@ -262,17 +271,23 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
 
   const onPointerDown = (event: PointerEvent) => {
     if (isGolfMode) {
-      const start = toWorldPoint(event.offsetX, event.offsetY);
+      const pointerStart = toWorldPoint(event.offsetX, event.offsetY);
       const golfBall = player();
       if (!golfBall) return;
       const radius = Math.max(golfBall.size.width, golfBall.size.height) / 2 + 6;
-      const dist = Math.hypot(start.x - golfBall.position.x, start.y - golfBall.position.y);
+      const dist = Math.hypot(pointerStart.x - golfBall.position.x, pointerStart.y - golfBall.position.y);
       const speed = Math.hypot(golfBall.velocity.x, golfBall.velocity.y);
       if (dist <= radius && speed <= 0.15) {
+        if (status !== "running") {
+          startGame();
+        }
         golfDragStart = { x: golfBall.position.x, y: golfBall.position.y };
-        golfDragCurrent = start;
+        golfDragCurrent = pointerStart;
       }
       return;
+    }
+    if (status !== "running") {
+      startGame();
     }
     pointerActive = true;
     pointerTarget = { x: event.offsetX, y: event.offsetY };
@@ -654,7 +669,7 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   frameId = requestAnimationFrame(loop);
 
   return {
-    start,
+    start: startGame,
     pause,
     reset,
     dispose,
