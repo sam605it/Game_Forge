@@ -43,7 +43,7 @@ const createFallbackSpec = (): GameSpecV1 => ({
   entities: [
     {
       id: "player",
-      kind: "hero",
+      kind: "player",
       position: { x: 120, y: 300 },
       velocity: { x: 0, y: 0 },
       size: { width: 32, height: 32 },
@@ -64,9 +64,7 @@ const createFallbackSpec = (): GameSpecV1 => ({
       tags: ["goal"],
     },
   ],
-  rules: [
-    { type: "win_on_goal", params: { targetTag: "goal", maxSpeed: 999 } },
-  ],
+  rules: [{ type: "win_on_goal", params: { targetTag: "goal", maxSpeed: 999 } }],
   controls: {
     scheme: "keyboard_move",
     mappings: {
@@ -135,12 +133,13 @@ const resolveBoundary = (entity: Entity, worldWidth: number, worldHeight: number
 export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasElement, callbacks: EngineCallbacks = {}) => {
   const spec = specInput ?? createFallbackSpec();
   const isGolfMode =
-    spec.controls.scheme === "mouse_drag_shot" ||
-    spec.controls.scheme === "click_shot" ||
+    spec.controls.scheme === "drag_launch" ||
     (spec.category === "sports" &&
       (spec.title.toLowerCase().includes("golf") || spec.description.toLowerCase().includes("golf")));
   const shootRule = spec.rules.find((rule) => rule.type === "score");
-  const shootTag = shootRule?.params?.targetTag === "bumper" ? "bumper" : null;
+  const shootTag = shootRule?.params?.targetTag ? String(shootRule.params.targetTag) : null;
+  const maxLivesRule = spec.rules.find((rule) => rule.type === "lives" || rule.type === "lose_on_lives");
+  const maxLives = Number(maxLivesRule?.params?.lives ?? 3);
   const context = canvas.getContext("2d");
   if (!context) {
     return {
@@ -158,6 +157,7 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   let frameId: number | null = null;
   let lastTime = 0;
   let strokes = 0;
+  let lives = maxLives;
   let status: RuntimeStatus = "idle";
   let actionQueued = false;
   const golfAimMaxDrag = 160;
@@ -203,6 +203,7 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   const reset = () => {
     entities = cloneEntities(baseEntities);
     strokes = 0;
+    lives = maxLives;
     updateState({ score: 0, timeRemaining: getTimerDuration(), message: null });
     setStatus("idle", spec.ui.messages?.start ?? null);
   };
@@ -274,6 +275,9 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
     }
     pointerActive = true;
     pointerTarget = { x: event.offsetX, y: event.offsetY };
+    if (spec.controls.scheme === "mouse_aim_shoot") {
+      actionQueued = true;
+    }
   };
 
   const onPointerUp = (event: PointerEvent) => {
@@ -314,7 +318,7 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   };
 
   const applyInput = (entity: Entity, delta: number) => {
-    if (isGolfMode || spec.controls.scheme === "mouse_drag_shot" || spec.controls.scheme === "click_shot") return;
+    if (isGolfMode) return;
     const speed = 220;
     let directionX = 0;
     let directionY = 0;
@@ -404,6 +408,23 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
         }
       }
       if (!collidedEntity) continue;
+      if (rule.type === "score") {
+        const targetTag = rule.params.targetTag ?? "pickup";
+        if (collidedEntity.tags?.includes(targetTag) && collidedEntity.collider.isSensor) {
+          state.score += Number(rule.params.amount ?? 1);
+          updateState({ score: state.score, message: `+${rule.params.amount ?? 1}` });
+          entities = entities.filter((entity) => entity.id !== collidedEntity.id);
+        }
+      }
+      if (rule.type === "lose_on_lives") {
+        if (collidedEntity.tags?.includes("hazard") || collidedEntity.tags?.includes("enemy")) {
+          lives = Math.max(0, lives - 1);
+          updateState({ message: `Hit! ${lives} lives left.` });
+          if (lives <= 0) {
+            setStatus("lost", spec.ui.messages?.lose ?? "Out of lives!");
+          }
+        }
+      }
       if (rule.type === "win_on_goal") {
         const targetTag = rule.params.targetTag ?? "goal";
         if (collidedEntity.tags?.includes(targetTag)) {
@@ -430,6 +451,12 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
           }
         }
       }
+      if (rule.type === "win_on_score") {
+        const targetScore = Number(rule.params.targetScore ?? 1);
+        if (state.score >= targetScore) {
+          setStatus("won", spec.ui.messages?.win ?? "Score reached!");
+        }
+      }
     }
   };
 
@@ -452,9 +479,8 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
       context.fillText(entity.render.emoji, entity.position.x, entity.position.y + 4);
       return;
     }
-    const isCup =
-      isGolfMode && (entity.tags?.includes("goal") || entity.tags?.includes("cup") || entity.kind === "cup" || entity.kind === "goal");
-    const isBall = isGolfMode && (entity.tags?.includes("ball") || entity.kind === "ball");
+    const isCup = isGolfMode && (entity.tags?.includes("goal") || entity.tags?.includes("cup"));
+    const isBall = isGolfMode && entity.tags?.includes("ball");
     const color = entity.render.color ?? "#94a3b8";
     if (entity.render.shape && !SUPPORTED_SHAPES.includes(entity.render.shape)) {
       return;
@@ -591,6 +617,13 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
           entities = entities.filter((item) => item.id !== closest.entity.id);
           state.score += Number(spec.rules.find((rule) => rule.type === "score")?.params.amount ?? 1);
           updateState({ score: state.score });
+          const winRule = spec.rules.find((rule) => rule.type === "win_on_score");
+          if (winRule) {
+            const targetScore = Number(winRule.params.targetScore ?? 1);
+            if (state.score >= targetScore) {
+              setStatus("won", spec.ui.messages?.win ?? "Score reached!");
+            }
+          }
         }
       }
     }
