@@ -271,18 +271,18 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
 
   const onPointerDown = (event: PointerEvent) => {
     if (isGolfMode) {
-      const start = toWorldPoint(event.offsetX, event.offsetY);
+      const startPoint = toWorldPoint(event.offsetX, event.offsetY);
       const golfBall = player();
       if (!golfBall) return;
       const radius = Math.max(golfBall.size.width, golfBall.size.height) / 2 + 6;
-      const dist = Math.hypot(start.x - golfBall.position.x, start.y - golfBall.position.y);
+      const dist = Math.hypot(startPoint.x - golfBall.position.x, startPoint.y - golfBall.position.y);
       const speed = Math.hypot(golfBall.velocity.x, golfBall.velocity.y);
       if (dist <= radius && speed <= 0.15) {
         if (status !== "running") {
           start();
         }
         golfDragStart = { x: golfBall.position.x, y: golfBall.position.y };
-        golfDragCurrent = start;
+        golfDragCurrent = startPoint;
       }
       return;
     }

@@ -6,6 +6,15 @@ type SafeParseFailure = { success: false; error: { issues: Issue[] } };
 type SafeParseResult<T> = SafeParseSuccess<T> | SafeParseFailure;
 
 type InferShape<T> = T extends Schema<infer U> ? U : never;
+type OptionalKeys<T extends Record<string, Schema<any>>> = {
+  [K in keyof T]: undefined extends InferShape<T[K]> ? K : never;
+}[keyof T];
+type RequiredKeys<T extends Record<string, Schema<any>>> = Exclude<keyof T, OptionalKeys<T>>;
+type ObjectOutput<T extends Record<string, Schema<any>>> = {
+  [K in RequiredKeys<T>]: InferShape<T[K]>;
+} & {
+  [K in OptionalKeys<T>]?: Exclude<InferShape<T[K]>, undefined>;
+};
 
 class Schema<T> {
   _output!: T;
@@ -98,12 +107,12 @@ class ArraySchema<T> extends Schema<T[]> {
     const data: T[] = [];
     value.forEach((item, index) => {
       const parsed = this.item.safeParse(item);
-      if (parsed.success) {
-        data.push(parsed.data);
-      } else {
+      if ("error" in parsed) {
         parsed.error.issues.forEach((issue) => {
           issues.push({ path: [index, ...issue.path], message: issue.message });
         });
+      } else {
+        data.push(parsed.data);
       }
     });
     if (issues.length) {
@@ -125,12 +134,12 @@ class TupleSchema<T extends unknown[]> extends Schema<T> {
     const data = [] as unknown as T;
     this.items.forEach((schema, index) => {
       const parsed = schema.safeParse(value[index]);
-      if (parsed.success) {
-        data[index] = parsed.data;
-      } else {
+      if ("error" in parsed) {
         parsed.error.issues.forEach((issue) => {
           issues.push({ path: [index, ...issue.path], message: issue.message });
         });
+      } else {
+        data[index] = parsed.data;
       }
     });
     if (issues.length) {
@@ -146,7 +155,7 @@ class AnySchema extends Schema<any> {
   }
 }
 
-class ObjectSchema<T extends Record<string, Schema<any>>> extends Schema<{ [K in keyof T]: InferShape<T[K]> }> {
+class ObjectSchema<T extends Record<string, Schema<any>>> extends Schema<ObjectOutput<T>> {
   private strictMode = false;
   constructor(private shape: T) {
     super();
@@ -155,7 +164,7 @@ class ObjectSchema<T extends Record<string, Schema<any>>> extends Schema<{ [K in
     this.strictMode = true;
     return this;
   }
-  safeParse(value: unknown): SafeParseResult<{ [K in keyof T]: InferShape<T[K]> }> {
+  safeParse(value: unknown): SafeParseResult<ObjectOutput<T>> {
     if (typeof value !== "object" || value === null) {
       return { success: false, error: { issues: [{ path: [], message: "Expected object" }] } };
     }
@@ -166,12 +175,12 @@ class ObjectSchema<T extends Record<string, Schema<any>>> extends Schema<{ [K in
     for (const key of Object.keys(this.shape)) {
       const schema = this.shape[key];
       const parsed = schema.safeParse(record[key]);
-      if (parsed.success) {
-        data[key] = parsed.data;
-      } else {
+      if ("error" in parsed) {
         parsed.error.issues.forEach((issue) => {
           issues.push({ path: [key, ...issue.path], message: issue.message });
         });
+      } else {
+        data[key] = parsed.data;
       }
     }
 
@@ -186,14 +195,14 @@ class ObjectSchema<T extends Record<string, Schema<any>>> extends Schema<{ [K in
     if (issues.length) {
       return { success: false, error: { issues } };
     }
-    return { success: true, data: data as { [K in keyof T]: InferShape<T[K]> } };
+    return { success: true, data: data as ObjectOutput<T> };
   }
 }
 
 export const z = {
   string: () => new StringSchema(),
   number: () => new NumberSchema(),
-  enum: <T extends readonly string[]>(values: T) => new EnumSchema(values as readonly string[]),
+  enum: <T extends readonly string[]>(values: T) => new EnumSchema<T[number]>(values),
   array: <T>(schema: Schema<T>) => new ArraySchema(schema),
   tuple: <T extends unknown[]>(schemas: { [K in keyof T]: Schema<T[K]> }) => new TupleSchema(schemas),
   any: () => new AnySchema(),
