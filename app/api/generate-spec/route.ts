@@ -16,7 +16,7 @@ type GenerateRequest = {
 
 const SYSTEM_PROMPT = `You generate GameSpec v1 JSON only.
 Return strict JSON with no markdown.
-You MUST choose exactly 1 category from: sports,puzzle,arcade,action,racing,platforming,shooter,strategy,simulation,rhythm_music,word_trivia,party_social.
+You MUST choose exactly 1 category from: sports,puzzle,arcade,action,racing,platformer,shooter,strategy,simulation,rhythm_music,word_trivia,party_social.
 You MUST include non-empty mechanics and make the game feel recognizable for that category.
 Include exactly top-level sections: metadata, world, entities, components, rules, assets, constraints.
 metadata.version must be "1.0".
@@ -41,7 +41,7 @@ const buildFallbackSpec = (categoryHint: Category, prompt: string, promptContrac
     : lower.includes("shoot")
       ? "shooter"
       : lower.includes("platform") || lower.includes("jump")
-        ? "platforming"
+        ? "platformer"
         : lower.includes("puzzle")
           ? "puzzle"
           : lower.includes("rhythm") || lower.includes("beat")

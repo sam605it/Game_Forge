@@ -1,19 +1,6 @@
-export const CATEGORIES = [
-  "sports",
-  "puzzle",
-  "arcade",
-  "action",
-  "racing",
-  "platforming",
-  "shooter",
-  "strategy",
-  "simulation",
-  "rhythm_music",
-  "word_trivia",
-  "party_social",
-] as const;
+import { CATEGORIES, type Category } from "@/engine/categories";
 
-export type Category = (typeof CATEGORIES)[number];
+export { CATEGORIES, type Category };
 
 export type Template =
   | "physics_2d"

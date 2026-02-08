@@ -1,10 +1,13 @@
 import type { CompilerOptions, Intent } from "@/engine/types";
 import { TEMPLATE_MAP } from "@/engine/templates";
+import { classifyCategory, extractThemeTags } from "@/engine/intent/categoryClassifier";
 
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/responses";
 
 const DEFAULT_INTENT: Intent = {
+  prompt: "",
   templateId: "dodge_arena",
+  category: "arcade",
   modifiers: {},
   constraints: { include: [], exclude: [] },
   counts: {},
@@ -33,24 +36,6 @@ const TEMPLATE_KEYWORDS: Array<{ id: string; keywords: string[] }> = [
   { id: "city_builder", keywords: ["city", "builder"] },
   { id: "farming_sim", keywords: ["farm", "farming"] },
   { id: "fishing_hunt", keywords: ["fish", "fishing"] },
-];
-
-const THEME_TAGS = [
-  "space",
-  "forest",
-  "desert",
-  "ocean",
-  "neon",
-  "retro",
-  "cyber",
-  "medieval",
-  "spooky",
-  "winter",
-  "lava",
-  "jungle",
-  "city",
-  "ruins",
-  "crystal",
 ];
 
 const COUNT_MAP: Array<{ key: string; terms: string[] }> = [
@@ -137,21 +122,18 @@ const extractPace = (prompt: string): Intent["pace"] => {
   return "medium";
 };
 
-const extractThemes = (prompt: string) => {
-  const lower = prompt.toLowerCase();
-  return THEME_TAGS.filter((tag) => lower.includes(tag));
-};
-
 const buildIntentFallback = (prompt: string): Intent => {
   const templateId = extractTemplateId(prompt);
   return {
     ...DEFAULT_INTENT,
+    prompt,
     templateId,
+    category: classifyCategory(prompt),
     constraints: extractConstraints(prompt),
     counts: extractCounts(prompt),
     difficulty: extractDifficulty(prompt),
     pace: extractPace(prompt),
-    themeTags: extractThemes(prompt),
+    themeTags: extractThemeTags(prompt),
   };
 };
 
@@ -225,11 +207,13 @@ export const parseIntent = async (prompt: string, options: CompilerOptions = {})
     return {
       ...DEFAULT_INTENT,
       ...parsed,
+      prompt,
       templateId: parsed.templateId,
+      category: classifyCategory(prompt),
       modifiers: parsed.modifiers ?? {},
       constraints: parsed.constraints ?? { include: [], exclude: [] },
       counts: parsed.counts ?? {},
-      themeTags: parsed.themeTags ?? [],
+      themeTags: Array.from(new Set([...(parsed.themeTags ?? []), ...extractThemeTags(prompt)])),
     };
   } catch {
     return buildIntentFallback(prompt);

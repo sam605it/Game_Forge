@@ -56,7 +56,7 @@ export const CATEGORY_PLAYBOOKS: Record<Category, CategoryPlaybook> = {
     uiInstructions: ["Show timer", "Show lap/finish objective"],
     recognizabilityRules: ["Track boundaries", "Steering controls", "Finish trigger"],
   },
-  platforming: {
+  platformer: {
     defaultTemplate: "platformer_2d",
     requiredMechanics: ["jump", "run", "goal_reach"],
     preferredCamera: "follow",

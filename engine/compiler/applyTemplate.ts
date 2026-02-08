@@ -2,6 +2,7 @@ import type { Intent } from "@/engine/types";
 import { TEMPLATE_MAP } from "@/engine/templates";
 import { addDecorCluster, mulberry32 } from "@/engine/templates/utils";
 import type { GameSpecV1 } from "@/types";
+import { pickIcon } from "@/engine/icons/iconPicker";
 
 const THEME_DECOR: Record<string, { color: string; tag: string; emoji?: string }> = {
   space: { color: "#38bdf8", tag: "star", emoji: "⭐" },
@@ -66,6 +67,31 @@ const applyCounts = (spec: GameSpecV1, intent: Intent) => {
   return spec;
 };
 
+const ICON_KINDS = new Set(["player", "enemy", "goal", "pickup", "decor", "npc", "hazard", "projectile", "spawner"]);
+
+const applyIcons = (spec: GameSpecV1, intent: Intent, seed: number) => {
+  spec.entities = spec.entities.map((entity, index) => {
+    if (!ICON_KINDS.has(entity.kind)) return entity;
+    const icon = pickIcon({
+      prompt: intent.prompt,
+      category: intent.category,
+      entityKind: entity.kind as Parameters<typeof pickIcon>[0]["entityKind"],
+      themeTags: intent.themeTags,
+      seed: seed + index,
+    });
+    return {
+      ...entity,
+      meta: {
+        ...entity.meta,
+        iconEmoji: icon.emoji,
+        iconId: icon.id,
+        iconName: icon.name,
+      },
+    };
+  });
+  return spec;
+};
+
 export const applyTemplate = (intent: Intent, seed: number) => {
   const template = TEMPLATE_MAP.get(intent.templateId) ?? TEMPLATE_MAP.get("dodge_arena");
   if (!template) {
@@ -75,5 +101,6 @@ export const applyTemplate = (intent: Intent, seed: number) => {
   spec = template.applyModifiers(spec, intent, seed);
   spec = applyTheme(spec, intent, seed);
   spec = applyCounts(spec, intent);
+  spec = applyIcons(spec, intent, seed);
   return { spec, template };
 };

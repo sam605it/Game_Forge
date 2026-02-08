@@ -2,13 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const categories = [
-  'sports','puzzle','arcade','action','racing','platforming','shooter','strategy','simulation','rhythm_music','word_trivia','party_social'
+  'sports','puzzle','arcade','action','racing','platformer','shooter','strategy','simulation','rhythm_music','word_trivia','party_social'
 ];
 
 const templateByCategory = {
   sports: 'physics_2d',
   simulation: 'physics_2d',
-  platforming: 'platformer_2d',
+  platformer: 'platformer_2d',
   puzzle: 'grid_2d',
   word_trivia: 'grid_2d',
   rhythm_music: 'rhythm_2d',

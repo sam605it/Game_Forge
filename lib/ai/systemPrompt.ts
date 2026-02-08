@@ -7,7 +7,7 @@ Engine capabilities (STRICT):
 ${JSON.stringify(ENGINE_CAPABILITIES, null, 2)}
 
 GameSpecV1 requirements:
-- Use only the allowed categories: ["sports","simulation","platforming","puzzle","word_trivia","rhythm_music","arcade","action","racing","shooter","strategy","party_social"].
+- Use only the allowed categories: ["sports","simulation","platformer","puzzle","word_trivia","rhythm_music","arcade","action","racing","shooter","strategy","party_social"].
 - Entities must be <= 40 total.
 - Use simple shapes or emojis only.
 - Provide a clear win/lose objective via rules every time.
@@ -18,7 +18,7 @@ GameSpecV1 requirements:
 
 Category guidance:
 - sports/simulation: physics_2d feel.
-- platforming: gravity + platforms + goal.
+- platformer: gravity + platforms + goal.
 - puzzle/word_trivia: grid style rules and simple interactions.
 - rhythm_music: timing + lanes.
 - arcade/action/racing/shooter/strategy/party_social: topdown / simple.

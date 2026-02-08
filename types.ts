@@ -1,16 +1,4 @@
-export type GameCategory =
-  | "sports"
-  | "simulation"
-  | "platforming"
-  | "puzzle"
-  | "word_trivia"
-  | "rhythm_music"
-  | "arcade"
-  | "action"
-  | "racing"
-  | "shooter"
-  | "strategy"
-  | "party_social";
+import type { Category } from "@/engine/categories";
 
 export type EntityRender = {
   type: "shape" | "emoji";
@@ -35,6 +23,11 @@ export type Entity = {
   render: EntityRender;
   collider: EntityCollider;
   tags?: string[];
+  meta?: {
+    iconEmoji?: string;
+    iconId?: string;
+    iconName?: string;
+  };
 };
 
 export type Rule = {
@@ -54,7 +47,7 @@ export type Rule = {
 export type GameSpecV1 = {
   id: string;
   title: string;
-  category: GameCategory;
+  category: Category;
   description: string;
   assets: string[];
   world: {

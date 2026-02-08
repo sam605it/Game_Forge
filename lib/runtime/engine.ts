@@ -91,6 +91,7 @@ const cloneEntities = (entities: Entity[]) =>
     render: { ...entity.render },
     collider: { ...entity.collider },
     tags: entity.tags ? [...entity.tags] : undefined,
+    meta: entity.meta ? { ...entity.meta } : undefined,
   }));
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -472,13 +473,7 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   const drawEntity = (entity: Entity) => {
     const halfW = entity.size.width / 2;
     const halfH = entity.size.height / 2;
-    if (entity.render.type === "emoji" && entity.render.emoji) {
-      context.font = `${Math.max(entity.size.width, entity.size.height)}px sans-serif`;
-      context.textAlign = "center";
-      context.textBaseline = "middle";
-      context.fillText(entity.render.emoji, entity.position.x, entity.position.y + 4);
-      return;
-    }
+    let shapeDrawn = false;
     const isCup = isGolfMode && (entity.tags?.includes("goal") || entity.tags?.includes("cup"));
     const isBall = isGolfMode && entity.tags?.includes("ball");
     const color = entity.render.color ?? "#94a3b8";
@@ -508,32 +503,46 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
       context.lineTo(entity.position.x + radius * 0.2, entity.position.y - radius * 1.2);
       context.closePath();
       context.fill();
-      return;
+      shapeDrawn = true;
     }
-    context.fillStyle = color;
-    if (entity.render.shape === "line") {
-      context.strokeStyle = color;
-      context.lineWidth = Math.max(2, entity.size.height);
-      context.beginPath();
-      context.moveTo(entity.position.x - halfW, entity.position.y);
-      context.lineTo(entity.position.x + halfW, entity.position.y);
-      context.stroke();
-      return;
-    }
-    if (entity.render.shape === "circle" || entity.collider.type === "circle") {
-      const radius = Math.max(halfW, halfH);
-      context.beginPath();
-      context.arc(entity.position.x, entity.position.y, radius, 0, Math.PI * 2);
-      context.fill();
-      if (isBall) {
-        context.fillStyle = "#cbd5f5";
+    if (!shapeDrawn) {
+      context.fillStyle = color;
+      if (entity.render.shape === "line") {
+        context.strokeStyle = color;
+        context.lineWidth = Math.max(2, entity.size.height);
         context.beginPath();
-        context.arc(entity.position.x - radius * 0.25, entity.position.y - radius * 0.25, radius * 0.25, 0, Math.PI * 2);
+        context.moveTo(entity.position.x - halfW, entity.position.y);
+        context.lineTo(entity.position.x + halfW, entity.position.y);
+        context.stroke();
+        shapeDrawn = true;
+      } else if (entity.render.shape === "circle" || entity.collider.type === "circle") {
+        const radius = Math.max(halfW, halfH);
+        context.beginPath();
+        context.arc(entity.position.x, entity.position.y, radius, 0, Math.PI * 2);
         context.fill();
+        if (isBall) {
+          context.fillStyle = "#cbd5f5";
+          context.beginPath();
+          context.arc(entity.position.x - radius * 0.25, entity.position.y - radius * 0.25, radius * 0.25, 0, Math.PI * 2);
+          context.fill();
+        }
+        shapeDrawn = true;
+      } else {
+        context.fillRect(entity.position.x - halfW, entity.position.y - halfH, entity.size.width, entity.size.height);
+        shapeDrawn = true;
       }
-      return;
     }
-    context.fillRect(entity.position.x - halfW, entity.position.y - halfH, entity.size.width, entity.size.height);
+    const overlayEmoji = entity.meta?.iconEmoji ?? entity.render.emoji;
+    if (overlayEmoji) {
+      try {
+        context.font = `${Math.max(entity.size.width, entity.size.height)}px sans-serif`;
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText(overlayEmoji, entity.position.x, entity.position.y + 4);
+      } catch {
+        // Ignore emoji rendering errors to preserve shape rendering.
+      }
+    }
   };
 
   const render = () => {

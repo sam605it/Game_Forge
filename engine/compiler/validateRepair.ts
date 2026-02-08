@@ -38,7 +38,8 @@ const applyConstraints = (spec: GameSpecV1, intent: Intent) => {
   const isExcluded = (value: string) => lowered.some((term) => value.includes(term));
 
   spec.entities = spec.entities.filter((entity) => {
-    const descriptor = `${entity.id} ${entity.kind} ${(entity.tags ?? []).join(" ")}`.toLowerCase();
+    const meta = entity.meta ?? {};
+    const descriptor = `${entity.id} ${entity.kind} ${(entity.tags ?? []).join(" ")} ${meta.iconName ?? ""} ${meta.iconId ?? ""}`.toLowerCase();
     return !isExcluded(descriptor);
   });
   spec.assets = spec.assets.filter((asset) => !isExcluded(asset.toLowerCase()));

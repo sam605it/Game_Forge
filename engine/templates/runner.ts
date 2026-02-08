@@ -20,7 +20,7 @@ export const runner: TemplateDefinition = {
       id: `runner-${seed}`,
       title: "Skyline Runner",
       description: "Sprint through obstacles to reach the finish beacon.",
-      category: "platforming",
+      category: "platformer",
       controls: "keyboard_move",
       gravity: [0, 120],
       friction: 0.93,
