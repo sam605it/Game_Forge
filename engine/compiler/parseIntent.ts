@@ -205,7 +205,7 @@ export const parseIntent = async (prompt: string, options: CompilerOptions = {})
           },
         },
       }),
-    );
+    });
 
     if (!response.ok) {
       return buildIntentFallback(prompt);
