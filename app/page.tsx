@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { toast } from "sonner";
 import ChatInterface, { type ChatMessage } from "@/components/ChatInterface";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import GamePreview from "@/components/GamePreview";
 import { buildPromptFallbackSpec } from "@/lib/ai/promptFallback";
 import {
@@ -93,6 +95,12 @@ export default function ForgePage() {
     setVaultCount((count) => count + 1);
   };
 
+  const handlePreviewError = useCallback(() => {
+    const fallback = buildPromptFallbackSpec(lastPrompt || "Safe fallback");
+    setSpec(fallback);
+    toast.success("Recovered safely.");
+  }, [lastPrompt]);
+
   return (
     <div className="min-h-screen bg-[#070b16] text-white">
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-6 px-6 py-8">
@@ -129,7 +137,17 @@ export default function ForgePage() {
           </Panel>
           <PanelResizeHandle className="mx-2 w-2 rounded-full bg-white/10" />
           <Panel defaultSize={60} minSize={38}>
-            <GamePreview spec={spec} onSave={handleSave} />
+            <ErrorBoundary
+              fallback={(
+                <div className="flex h-full min-h-[420px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950/60 p-6 text-sm text-white/70">
+                  The game preview hit a snag. Try forging again.
+                </div>
+              )}
+              onError={handlePreviewError}
+              resetKey={spec?.id ?? "empty"}
+            >
+              <GamePreview spec={spec} onSave={handleSave} />
+            </ErrorBoundary>
             {errorMessage && (
               <div className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-500/10 p-4 text-sm text-amber-100">
                 {errorMessage}

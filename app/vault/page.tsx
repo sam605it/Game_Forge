@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import GamePreview from "@/components/GamePreview";
+import { buildPromptFallbackSpec } from "@/lib/ai/promptFallback";
 import { getVaultGames, removeVaultGame } from "@/lib/storage";
 import type { GameSpecV1 } from "@/types";
 
@@ -31,6 +34,11 @@ export default function VaultPage() {
   };
 
   const emptyState = useMemo(() => vaultGames.length === 0, [vaultGames.length]);
+
+  const handlePreviewError = useCallback(() => {
+    setSelected(buildPromptFallbackSpec("Vault fallback"));
+    toast.success("Recovered safely.");
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#070b16] text-white">
@@ -76,7 +84,17 @@ export default function VaultPage() {
           </aside>
 
           <div className="flex flex-col gap-4">
-            <GamePreview spec={selected} />
+            <ErrorBoundary
+              fallback={(
+                <div className="flex h-full min-h-[420px] items-center justify-center rounded-3xl border border-white/10 bg-slate-950/60 p-6 text-sm text-white/70">
+                  The saved preview could not load. Select another game.
+                </div>
+              )}
+              onError={handlePreviewError}
+              resetKey={selected?.id ?? "empty"}
+            >
+              <GamePreview spec={selected} />
+            </ErrorBoundary>
             {selected && (
               <button
                 type="button"

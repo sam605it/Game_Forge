@@ -1,8 +1,11 @@
 import type { CompilerOptions, Intent } from "@/engine/types";
 import { TEMPLATE_MAP } from "@/engine/templates";
 import { classifyCategory, extractThemeTags } from "@/engine/intent/categoryClassifier";
+import { parseStrictJSONObject } from "@/lib/ai/parseStrictJSONObject";
 
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/responses";
+const OPENAI_TIMEOUT_MS = 8000;
+const OPENAI_RETRIES = 2;
 
 const DEFAULT_INTENT: Intent = {
   prompt: "",
@@ -59,6 +62,36 @@ const extractJson = (payload: unknown) => {
   if (typeof textPart?.text === "string") return textPart.text;
   if (textPart?.json) return JSON.stringify(textPart.json);
   return "";
+};
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const fetchWithRetry = async (url: string, options: RequestInit) => {
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < OPENAI_RETRIES; attempt += 1) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), OPENAI_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      if (response.ok) {
+        clearTimeout(timeoutId);
+        return response;
+      }
+      if (![429, 500, 502, 503, 504].includes(response.status)) {
+        clearTimeout(timeoutId);
+        return response;
+      }
+      lastError = new Error(`OpenAI retryable error: ${response.status}`);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("OpenAI request failed.");
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    const backoff = 200 * 2 ** attempt + Math.floor(Math.random() * 100);
+    await sleep(backoff);
+  }
+  if (lastError) throw lastError;
+  throw new Error("OpenAI request failed.");
 };
 
 const normalizeTerm = (value: string) => value.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, "");
@@ -146,7 +179,7 @@ export const parseIntent = async (prompt: string, options: CompilerOptions = {})
   const systemPrompt = `You extract intent for a mini-game compiler. Return strict JSON only.\n\nSchema: {\n  "templateId": string,\n  "modifiers": object,\n  "constraints": { "include": string[], "exclude": string[] },\n  "counts": object,\n  "difficulty": "easy"|"medium"|"hard",\n  "pace": "slow"|"medium"|"fast",\n  "themeTags": string[]\n}\n\nUse templateId from this list: ${Array.from(TEMPLATE_MAP.keys()).join(", ")}.\nIf unsure, choose "dodge_arena". Do not add extra fields.`;
 
   try {
-    const response = await fetch(OPENAI_ENDPOINT, {
+    const response = await fetchWithRetry(OPENAI_ENDPOINT, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -199,7 +232,7 @@ export const parseIntent = async (prompt: string, options: CompilerOptions = {})
       return buildIntentFallback(prompt);
     }
 
-    const parsed = JSON.parse(jsonText) as Intent;
+    const parsed = parseStrictJSONObject(jsonText) as Intent;
     if (!parsed.templateId || !TEMPLATE_MAP.has(parsed.templateId)) {
       return buildIntentFallback(prompt);
     }

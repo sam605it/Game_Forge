@@ -1,109 +1,203 @@
-export type SafeParseResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: Error };
+type Issue = { path: Array<string | number>; message: string };
 
-export type ZodType<T> = {
-  parse: (input: unknown) => T;
-  safeParse: (input: unknown) => SafeParseResult<T>;
-  optional: () => ZodType<T | undefined>;
-};
+type SafeParseSuccess<T> = { success: true; data: T };
+type SafeParseFailure = { success: false; error: { issues: Issue[] } };
 
-export type Infer<T extends ZodType<unknown>> = T extends ZodType<infer U>
-  ? U
-  : never;
+type SafeParseResult<T> = SafeParseSuccess<T> | SafeParseFailure;
 
-type OptionalKeys<T extends Record<string, ZodType<unknown>>> = {
-  [K in keyof T]: undefined extends Infer<T[K]> ? K : never;
-}[keyof T];
+type InferShape<T> = T extends Schema<infer U> ? U : never;
 
-type RequiredKeys<T extends Record<string, ZodType<unknown>>> = Exclude<
-  keyof T,
-  OptionalKeys<T>
->;
-
-type ObjectInfer<T extends Record<string, ZodType<unknown>>> = {
-  [K in RequiredKeys<T>]: Infer<T[K]>;
-} & {
-  [K in OptionalKeys<T>]?: Exclude<Infer<T[K]>, undefined>;
-};
-
-function createType<T>(parser: (input: unknown) => T): ZodType<T> {
-  return {
-    parse: parser,
-    safeParse: (input: unknown) => {
-      try {
-        return { success: true, data: parser(input) };
-      } catch (error) {
-        return { success: false, error: error as Error };
-      }
-    },
-    optional: () =>
-      createType<T | undefined>((input) => {
-        if (input === undefined) return undefined;
-        return parser(input);
-      }),
-  };
+class Schema<T> {
+  _output!: T;
+  safeParse(_value: unknown): SafeParseResult<T> {
+    return { success: true, data: _value as T };
+  }
+  optional() {
+    return new OptionalSchema(this);
+  }
 }
 
-function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+class OptionalSchema<T> extends Schema<T | undefined> {
+  constructor(private inner: Schema<T>) {
+    super();
+  }
+  safeParse(value: unknown): SafeParseResult<T | undefined> {
+    if (value === undefined) {
+      return { success: true, data: undefined };
+    }
+    return this.inner.safeParse(value) as SafeParseResult<T | undefined>;
+  }
 }
 
-const z = {
-  string: () =>
-    createType<string>((input) => {
-      if (typeof input !== "string") {
-        throw new Error("Expected string");
+class StringSchema extends Schema<string> {
+  safeParse(value: unknown): SafeParseResult<string> {
+    if (typeof value !== "string") {
+      return { success: false, error: { issues: [{ path: [], message: "Expected string" }] } };
+    }
+    return { success: true, data: value };
+  }
+}
+
+class NumberSchema extends Schema<number> {
+  private minValue: number | null = null;
+  private maxValue: number | null = null;
+
+  min(value: number) {
+    this.minValue = value;
+    return this;
+  }
+
+  max(value: number) {
+    this.maxValue = value;
+    return this;
+  }
+
+  safeParse(value: unknown): SafeParseResult<number> {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+      return { success: false, error: { issues: [{ path: [], message: "Expected number" }] } };
+    }
+    if (this.minValue !== null && value < this.minValue) {
+      return { success: false, error: { issues: [{ path: [], message: `Number must be >= ${this.minValue}` }] } };
+    }
+    if (this.maxValue !== null && value > this.maxValue) {
+      return { success: false, error: { issues: [{ path: [], message: `Number must be <= ${this.maxValue}` }] } };
+    }
+    return { success: true, data: value };
+  }
+}
+
+class EnumSchema<T extends string> extends Schema<T> {
+  constructor(private values: readonly T[]) {
+    super();
+  }
+  safeParse(value: unknown): SafeParseResult<T> {
+    if (typeof value !== "string" || !this.values.includes(value as T)) {
+      return { success: false, error: { issues: [{ path: [], message: "Expected enum value" }] } };
+    }
+    return { success: true, data: value as T };
+  }
+}
+
+class ArraySchema<T> extends Schema<T[]> {
+  private maxLength: number | null = null;
+  constructor(private item: Schema<T>) {
+    super();
+  }
+  max(value: number) {
+    this.maxLength = value;
+    return this;
+  }
+  safeParse(value: unknown): SafeParseResult<T[]> {
+    if (!Array.isArray(value)) {
+      return { success: false, error: { issues: [{ path: [], message: "Expected array" }] } };
+    }
+    if (this.maxLength !== null && value.length > this.maxLength) {
+      return { success: false, error: { issues: [{ path: [], message: `Array must have <= ${this.maxLength} items` }] } };
+    }
+    const issues: Issue[] = [];
+    const data: T[] = [];
+    value.forEach((item, index) => {
+      const parsed = this.item.safeParse(item);
+      if (parsed.success) {
+        data.push(parsed.data);
+      } else {
+        parsed.error.issues.forEach((issue) => {
+          issues.push({ path: [index, ...issue.path], message: issue.message });
+        });
       }
-      return input;
-    }),
-  number: () =>
-    createType<number>((input) => {
-      if (typeof input !== "number" || Number.isNaN(input)) {
-        throw new Error("Expected number");
+    });
+    if (issues.length) {
+      return { success: false, error: { issues } };
+    }
+    return { success: true, data };
+  }
+}
+
+class TupleSchema<T extends unknown[]> extends Schema<T> {
+  constructor(private items: { [K in keyof T]: Schema<T[K]> }) {
+    super();
+  }
+  safeParse(value: unknown): SafeParseResult<T> {
+    if (!Array.isArray(value) || value.length !== this.items.length) {
+      return { success: false, error: { issues: [{ path: [], message: "Expected tuple" }] } };
+    }
+    const issues: Issue[] = [];
+    const data = [] as unknown as T;
+    this.items.forEach((schema, index) => {
+      const parsed = schema.safeParse(value[index]);
+      if (parsed.success) {
+        data[index] = parsed.data;
+      } else {
+        parsed.error.issues.forEach((issue) => {
+          issues.push({ path: [index, ...issue.path], message: issue.message });
+        });
       }
-      return input;
-    }),
-  any: () => createType<unknown>((input) => input),
-  enum: <T extends readonly string[]>(values: T) =>
-    createType<T[number]>((input) => {
-      if (typeof input !== "string" || !values.includes(input)) {
-        throw new Error("Expected enum value");
+    });
+    if (issues.length) {
+      return { success: false, error: { issues } };
+    }
+    return { success: true, data };
+  }
+}
+
+class AnySchema extends Schema<any> {
+  safeParse(value: unknown): SafeParseResult<any> {
+    return { success: true, data: value };
+  }
+}
+
+class ObjectSchema<T extends Record<string, Schema<any>>> extends Schema<{ [K in keyof T]: InferShape<T[K]> }> {
+  private strictMode = false;
+  constructor(private shape: T) {
+    super();
+  }
+  strict() {
+    this.strictMode = true;
+    return this;
+  }
+  safeParse(value: unknown): SafeParseResult<{ [K in keyof T]: InferShape<T[K]> }> {
+    if (typeof value !== "object" || value === null) {
+      return { success: false, error: { issues: [{ path: [], message: "Expected object" }] } };
+    }
+    const record = value as Record<string, unknown>;
+    const issues: Issue[] = [];
+    const data: Record<string, unknown> = {};
+
+    for (const key of Object.keys(this.shape)) {
+      const schema = this.shape[key];
+      const parsed = schema.safeParse(record[key]);
+      if (parsed.success) {
+        data[key] = parsed.data;
+      } else {
+        parsed.error.issues.forEach((issue) => {
+          issues.push({ path: [key, ...issue.path], message: issue.message });
+        });
       }
-      return input as T[number];
-    }),
-  array: <T>(schema: ZodType<T>) =>
-    createType<T[]>((input) => {
-      if (!Array.isArray(input)) {
-        throw new Error("Expected array");
+    }
+
+    if (this.strictMode) {
+      for (const key of Object.keys(record)) {
+        if (!(key in this.shape)) {
+          issues.push({ path: [key], message: "Unknown key" });
+        }
       }
-      return input.map((item) => schema.parse(item));
-    }),
-  tuple: <T extends [ZodType<unknown>, ...ZodType<unknown>[]]>(schemas: T) =>
-    createType<{ [K in keyof T]: T[K] extends ZodType<infer U> ? U : never }>((input) => {
-      if (!Array.isArray(input) || input.length !== schemas.length) {
-        throw new Error("Expected tuple");
-      }
-      return input.map((item, index) => schemas[index].parse(item)) as {
-        [K in keyof T]: T[K] extends ZodType<infer U> ? U : never;
-      };
-    }),
-  object: <T extends Record<string, ZodType<unknown>>>(shape: T) =>
-    createType<ObjectInfer<T>>((input) => {
-      if (!isObject(input)) {
-        throw new Error("Expected object");
-      }
-      const result: Record<string, unknown> = {};
-      for (const key of Object.keys(shape)) {
-        const schema = shape[key];
-        result[key] = schema.parse((input as Record<string, unknown>)[key]);
-      }
-      return result as ObjectInfer<T>;
-    }),
+    }
+
+    if (issues.length) {
+      return { success: false, error: { issues } };
+    }
+    return { success: true, data: data as { [K in keyof T]: InferShape<T[K]> } };
+  }
+}
+
+export const z = {
+  string: () => new StringSchema(),
+  number: () => new NumberSchema(),
+  enum: <T extends readonly string[]>(values: T) => new EnumSchema(values as readonly string[]),
+  array: <T>(schema: Schema<T>) => new ArraySchema(schema),
+  tuple: <T extends unknown[]>(schemas: { [K in keyof T]: Schema<T[K]> }) => new TupleSchema(schemas),
+  any: () => new AnySchema(),
+  object: <T extends Record<string, Schema<any>>>(shape: T) => new ObjectSchema(shape),
 };
 
-namespace z {
-  export type infer<T extends ZodType<unknown>> = Infer<T>;
-}
-
-export { z };
+export type infer<T extends Schema<any>> = T["_output"];
