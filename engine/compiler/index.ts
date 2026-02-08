@@ -1,7 +1,5 @@
 import type { CompilerOptions, CompilerResult } from "@/engine/types";
-import { parseIntent } from "./parseIntent";
-import { applyTemplate } from "./applyTemplate";
-import { validateRepair } from "./validateRepair";
+import { forgeGame } from "@/engine/forge/forgeGame";
 
 const hashPrompt = (prompt: string) => {
   let hash = 0;
@@ -14,9 +12,28 @@ const hashPrompt = (prompt: string) => {
 
 export const compilePrompt = async (prompt: string, options: CompilerOptions = {}): Promise<CompilerResult> => {
   const seed = options.seed ?? hashPrompt(prompt);
-  const intent = await parseIntent(prompt, options);
-  const { spec, template } = applyTemplate(intent, seed);
-  const repaired = validateRepair(spec, intent, template, seed);
-  const debug = `template=${template.id} seed=${seed} difficulty=${intent.difficulty} pace=${intent.pace}`;
-  return { spec: repaired, intent, debug };
+  const forged = await forgeGame(prompt, { ...options, seed });
+  const debug = `template=${forged.templateId} seed=${seed}`;
+  return {
+    spec: forged.spec,
+    intent: {
+      prompt,
+      templateId: forged.templateId,
+      category: forged.params.category,
+      modifiers: {},
+      constraints: {},
+      counts: {
+        enemy: forged.params.counts.enemies,
+        hazard: forged.params.counts.obstacles,
+        pickup: forged.params.counts.pickups,
+      },
+      difficulty: forged.params.difficulty >= 4 ? "hard" : forged.params.difficulty <= 2 ? "easy" : "medium",
+      pace: "medium",
+      themeTags: forged.params.themeTags,
+    },
+    debug,
+    templateId: forged.templateId,
+    fallbackUsed: forged.fallbackUsed,
+    validationErrors: [],
+  };
 };

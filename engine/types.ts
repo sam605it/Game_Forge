@@ -46,4 +46,7 @@ export type CompilerResult = {
   spec: GameSpecV1;
   intent: Intent;
   debug: string;
+  templateId: string;
+  fallbackUsed?: boolean;
+  validationErrors?: string[];
 };

@@ -5,6 +5,7 @@ import { CATEGORY_EXAMPLES } from "@/app/gamespec/examples";
 import { PLAYBOOK_SUMMARY } from "@/app/gamespec/playbooks";
 import { applyCategoryPreset } from "@/app/gamespec/presets";
 import { parsePromptContract, validateAndSanitizeSpec } from "@/app/gamespec/promptContract";
+import { parseStrictJSONObject } from "@/lib/ai/parseStrictJSONObject";
 
 const OPENAI_ENDPOINT = "https://api.openai.com/v1/chat/completions";
 
@@ -28,11 +29,6 @@ Templates may not add decorations/obstacles not requested if they conflict with 
 
 Category Playbook Summary:
 ${PLAYBOOK_SUMMARY}`;
-
-const safeJsonParse = (text: string): unknown => {
-  const cleaned = text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "");
-  return JSON.parse(cleaned);
-};
 
 const buildFallbackSpec = (categoryHint: Category, prompt: string, promptContract = parsePromptContract(prompt)): GameSpecV1 => {
   const lower = prompt.toLowerCase();
@@ -168,7 +164,7 @@ promptContract: ${JSON.stringify(promptContract)}`;
 
     let parsed: unknown;
     try {
-      parsed = safeJsonParse(first.content);
+      parsed = parseStrictJSONObject(first.content);
     } catch {
       return NextResponse.json({ ok: false, errors: ["Model response was not valid JSON."] }, { status: 422 });
     }
@@ -194,7 +190,7 @@ Return corrected JSON only.`;
     }
 
     try {
-      const repaired = safeJsonParse(second.content);
+      const repaired = parseStrictJSONObject(second.content);
       const repairedNormalized = parseAndNormalize(repaired, promptContract);
       if (repairedNormalized.ok === true) {
         return NextResponse.json({ ok: true, spec: repairedNormalized.value, sanitizerReport: repairedNormalized.report });

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameSpecV1 } from "@/types";
 import { createEngine } from "@/lib/runtime/engine";
+import { adaptToRendererFromUnknown } from "@/engine/spec/adapter";
 
 const formatTime = (value: number | null) => {
   if (value === null) return null;
@@ -22,12 +23,16 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const isPlayable = Boolean(spec);
+  const playableSpec = useMemo(() => {
+    if (!spec) return null;
+    return adaptToRendererFromUnknown(spec, spec.title || spec.description || "Fallback");
+  }, [spec]);
+  const isPlayable = Boolean(playableSpec);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    if (!spec) {
+    if (!playableSpec) {
       engineRef.current?.dispose();
       engineRef.current = null;
       setStatus("idle");
@@ -44,7 +49,7 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
     }
 
     engineRef.current?.dispose();
-    engineRef.current = createEngine(spec, canvas, {
+    engineRef.current = createEngine(playableSpec, canvas, {
       onStateChange: (state) => {
         setStatus(state.status);
         setScore(state.score);
@@ -61,12 +66,12 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
       engineRef.current?.dispose();
       engineRef.current = null;
     };
-  }, [spec]);
+  }, [playableSpec]);
 
   const hudItems = useMemo(() => {
-    if (!spec) return [];
-    return spec.ui.hud;
-  }, [spec]);
+    if (!playableSpec) return [];
+    return playableSpec.ui.hud;
+  }, [playableSpec]);
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 rounded-3xl border border-white/10 bg-slate-950/60 p-5 text-white shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
@@ -74,7 +79,7 @@ export default function GamePreview({ spec, onSave }: GamePreviewProps) {
         <div>
           <h2 className="text-lg font-semibold">Game Preview</h2>
           <p className="text-xs text-white/60">
-            {spec ? spec.title : "Your forged game will appear here."}
+            {playableSpec ? playableSpec.title : "Your forged game will appear here."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

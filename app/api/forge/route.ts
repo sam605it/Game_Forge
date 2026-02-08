@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { GameSpecV1 } from "@/types";
 import { compilePrompt } from "@/engine/compiler";
+import { buildPromptFallbackSpec } from "@/lib/ai/promptFallback";
+import { normalizeSpec } from "@/lib/runtime/normalizeSpec";
 
 export async function POST(request: Request) {
   let prompt = "";
@@ -8,7 +10,8 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { prompt?: string };
     prompt = body.prompt ?? "";
     if (!prompt) {
-      return NextResponse.json({ error: "Missing prompt." }, { status: 400 });
+      const fallback = normalizeSpec(buildPromptFallbackSpec("Forged fallback"));
+      return NextResponse.json(fallback as GameSpecV1);
     }
 
     const { spec, debug } = await compilePrompt(prompt, {
@@ -22,11 +25,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(spec as GameSpecV1);
   } catch (error) {
-    try {
-      const { spec } = await compilePrompt(prompt || "Forged fallback", { useAI: false });
-      return NextResponse.json(spec as GameSpecV1);
-    } catch {
-      return NextResponse.json({ error: "Unable to forge game." }, { status: 500 });
-    }
+    const fallback = normalizeSpec(buildPromptFallbackSpec(prompt || "Forged fallback"));
+    return NextResponse.json(fallback as GameSpecV1);
   }
 }
