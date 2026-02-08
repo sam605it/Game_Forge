@@ -1,6 +1,32 @@
 import type { TemplateDefinition } from "@/engine/types";
 import { addBoundaryWalls, addDecorCluster, buildBaseSpec, createEntity, mulberry32, randomBetween } from "./utils";
 
+const normalizePrompt = (prompt: string) => prompt.toLowerCase().replace(/[^a-z0-9\s-]/g, " ");
+
+const hasAny = (value: string, terms: string[]) => terms.some((term) => value.includes(term));
+
+const isExcluded = (intent: { constraints: { exclude?: string[] } }, term: string) =>
+  (intent.constraints.exclude ?? []).some((value) => value.toLowerCase().includes(term));
+
+const addTreeCluster = (spec: ReturnType<typeof buildBaseSpec>, rng: () => number, count: number) => {
+  for (let i = 0; i < count; i += 1) {
+    spec.entities.push(
+      createEntity({
+        id: `decor-tree-${i}`,
+        kind: "decor",
+        x: randomBetween(rng, 80, spec.world.size.width - 80),
+        y: randomBetween(rng, 120, spec.world.size.height - 120),
+        width: 18,
+        height: 32,
+        color: "#15803d",
+        shape: "rect",
+        collider: { type: "rect", isStatic: true, isSensor: true },
+        tags: ["decor", "tree"],
+      }),
+    );
+  }
+};
+
 export const minigolf: TemplateDefinition = {
   id: "minigolf",
   label: "Mini Golf",
@@ -108,6 +134,7 @@ export const minigolf: TemplateDefinition = {
   },
   applyModifiers: (spec, intent, seed) => {
     const rng = mulberry32(seed + 11);
+    const normalizedPrompt = normalizePrompt(intent.prompt);
     if (intent.difficulty === "hard") {
       spec.world.physics.friction = 0.93;
       spec.entities.push(
@@ -122,6 +149,34 @@ export const minigolf: TemplateDefinition = {
           shape: "rect",
           collider: { type: "rect", isStatic: true, isSensor: true },
           tags: ["hazard", "sand"],
+        }),
+      );
+    }
+
+    const wantsTrees =
+      hasAny(normalizedPrompt, ["tree", "trees", "forest"]) || intent.themeTags.includes("forest");
+    const wantsBunny = hasAny(normalizedPrompt, ["bunny", "rabbit"]);
+
+    if (wantsTrees && !isExcluded(intent, "tree") && !isExcluded(intent, "trees") && !isExcluded(intent, "forest")) {
+      const lots = hasAny(normalizedPrompt, ["lots of", "many", "plenty", "ton of"]);
+      addTreeCluster(spec, rng, lots ? 14 : 8);
+    }
+
+    if (wantsBunny && !isExcluded(intent, "bunny") && !isExcluded(intent, "rabbit")) {
+      spec.entities.push(
+        createEntity({
+          id: "decor-bunny",
+          kind: "decor",
+          x: randomBetween(rng, 140, 560),
+          y: randomBetween(rng, 160, 420),
+          width: 32,
+          height: 32,
+          color: "#f8fafc",
+          shape: "circle",
+          renderType: "emoji",
+          emoji: "🐰",
+          collider: { type: "circle", isStatic: true, isSensor: true },
+          tags: ["decor", "bunny"],
         }),
       );
     }
