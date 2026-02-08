@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { infer as ZodInfer } from "zod";
 
 export const GameSpecSchema = z.object({
   title: z.string(),
@@ -55,4 +56,4 @@ export const GameSpecSchema = z.object({
     .optional(),
 });
 
-export type GameSpec = z.infer<typeof GameSpecSchema>;
+export type GameSpec = ZodInfer<typeof GameSpecSchema>;

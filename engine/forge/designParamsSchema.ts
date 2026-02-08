@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { infer as ZodInfer } from "zod";
 import type { Category } from "@/engine/categories";
 import { CATEGORIES } from "@/engine/categories";
 
@@ -16,7 +17,7 @@ export const DESIGN_PARAMS_SCHEMA = z.object({
   levelStyle: z.enum(["open", "maze", "rooms", "lanes"]),
 }).strict();
 
-export type DesignParams = z.infer<typeof DESIGN_PARAMS_SCHEMA>;
+export type DesignParams = ZodInfer<typeof DESIGN_PARAMS_SCHEMA>;
 
 export const fallbackDesignParams = (category: Category): DesignParams => ({
   category,
@@ -33,14 +34,15 @@ export const validateDesignParams = (
   category: Category,
 ): { ok: boolean; value: DesignParams; errors: string[] } => {
   const parsed = DESIGN_PARAMS_SCHEMA.safeParse(input);
-  if (parsed.success) {
-    return { ok: true, value: parsed.data, errors: [] };
+  if ("error" in parsed) {
+    const fallback = fallbackDesignParams(category);
+    const errors = parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`);
+    return {
+      ok: false,
+      value: fallback,
+      errors,
+    };
   }
 
-  const fallback = fallbackDesignParams(category);
-  return {
-    ok: false,
-    value: fallback,
-    errors: parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`),
-  };
+  return { ok: true, value: parsed.data, errors: [] };
 };

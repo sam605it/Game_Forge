@@ -35,6 +35,8 @@ export const normalizeSpec = (spec: GameSpecV1): GameSpecV1 => {
 
       const shape = entity.render.shape && SHAPES.includes(entity.render.shape) ? entity.render.shape : "circle";
 
+      const colliderType: "rect" | "circle" = entity.collider.type === "rect" ? "rect" : "circle";
+
       return {
         id: sanitizeString(entity.id, "entity"),
         kind: entity.kind,
@@ -55,7 +57,7 @@ export const normalizeSpec = (spec: GameSpecV1): GameSpecV1 => {
                 color: entity.render.color,
               },
         collider: {
-          type: entity.collider.type === "rect" ? "rect" : "circle",
+          type: colliderType,
           isStatic: Boolean(entity.collider.isStatic),
           isSensor: entity.collider.isSensor ?? false,
         },
