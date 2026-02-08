@@ -227,6 +227,15 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
+    const isMovementKey =
+      keyMap.up?.includes(event.code) ||
+      keyMap.down?.includes(event.code) ||
+      keyMap.left?.includes(event.code) ||
+      keyMap.right?.includes(event.code) ||
+      keyMap.action?.includes(event.code);
+    if (isMovementKey && status !== "running") {
+      start();
+    }
     if (keyMap.up?.includes(event.code)) input.up = true;
     if (keyMap.down?.includes(event.code)) input.down = true;
     if (keyMap.left?.includes(event.code)) input.left = true;
@@ -269,10 +278,16 @@ export const createEngine = (specInput: GameSpecV1 | null, canvas: HTMLCanvasEle
       const dist = Math.hypot(start.x - golfBall.position.x, start.y - golfBall.position.y);
       const speed = Math.hypot(golfBall.velocity.x, golfBall.velocity.y);
       if (dist <= radius && speed <= 0.15) {
+        if (status !== "running") {
+          start();
+        }
         golfDragStart = { x: golfBall.position.x, y: golfBall.position.y };
         golfDragCurrent = start;
       }
       return;
+    }
+    if (status !== "running") {
+      start();
     }
     pointerActive = true;
     pointerTarget = { x: event.offsetX, y: event.offsetY };
