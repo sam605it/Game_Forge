@@ -38,7 +38,16 @@ export type Entity = {
 };
 
 export type Rule = {
-  type: "strokes" | "score" | "timer" | "win_on_goal" | "lose_on_timer";
+  type:
+    | "score"
+    | "timer"
+    | "lives"
+    | "rounds"
+    | "checkpoints"
+    | "win_on_goal"
+    | "win_on_score"
+    | "lose_on_lives"
+    | "lose_on_timer";
   params: Record<string, any>;
 };
 
@@ -61,7 +70,7 @@ export type GameSpecV1 = {
   entities: Entity[];
   rules: Rule[];
   controls: {
-    scheme: "mouse_drag_shot" | "click_shot" | "keyboard_move";
+    scheme: "keyboard_move" | "mouse_aim_shoot" | "drag_launch" | "click_place" | "swipe_move";
     mappings: {
       up?: string[];
       down?: string[];

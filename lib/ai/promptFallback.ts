@@ -75,11 +75,11 @@ export const generateMiniGolfSpec = (prompt: string): GameSpecV1 => {
   const spec = baseSpec(prompt, "sports");
   spec.title = prompt.trim() ? spec.title : "Mini Golf Challenge";
   spec.description = `Sink the ball in the cup with as few strokes as possible. ${prompt.trim()}`.trim();
-  spec.controls.scheme = "mouse_drag_shot";
+  spec.controls.scheme = "drag_launch";
 
   addEntity(spec, {
     id: "ball",
-    kind: "ball",
+    kind: "player",
     position: { x: 120, y: 360 },
     velocity: { x: 0, y: 0 },
     size: { width: 22, height: 22 },
@@ -91,7 +91,7 @@ export const generateMiniGolfSpec = (prompt: string): GameSpecV1 => {
 
   addEntity(spec, {
     id: "cup",
-    kind: "cup",
+    kind: "goal",
     position: { x: 680, y: 200 },
     velocity: { x: 0, y: 0 },
     size: { width: 28, height: 28 },
@@ -112,7 +112,7 @@ export const generateMiniGolfSpec = (prompt: string): GameSpecV1 => {
   walls.forEach((wall) => {
     addEntity(spec, {
       id: wall.id,
-      kind: safeEntityKind("wall"),
+    kind: safeEntityKind("wall"),
       position: { x: wall.x, y: wall.y },
       velocity: { x: 0, y: 0 },
       size: { width: wall.width, height: wall.height },
@@ -126,7 +126,7 @@ export const generateMiniGolfSpec = (prompt: string): GameSpecV1 => {
   if (/water|pond|lake/i.test(prompt) && !isBanned("water")) {
     addEntity(spec, {
       id: "hazard-water",
-      kind: safeEntityKind("hazard"),
+    kind: safeEntityKind("hazard"),
       position: { x: 520, y: 380 },
       velocity: { x: 0, y: 0 },
       size: { width: 120, height: 60 },
@@ -140,7 +140,7 @@ export const generateMiniGolfSpec = (prompt: string): GameSpecV1 => {
   if (/sand|bunker/i.test(prompt) && !isBanned("sand")) {
     addEntity(spec, {
       id: "hazard-sand",
-      kind: safeEntityKind("hazard"),
+    kind: safeEntityKind("hazard"),
       position: { x: 260, y: 200 },
       velocity: { x: 0, y: 0 },
       size: { width: 90, height: 50 },
@@ -153,7 +153,7 @@ export const generateMiniGolfSpec = (prompt: string): GameSpecV1 => {
 
   const maxSpeed = clamp(1.4, 0.8, 2.5);
   spec.rules = [
-    { type: "strokes", params: {} },
+    { type: "score", params: { label: "Strokes", amount: 1 } },
     { type: "win_on_goal", params: { targetTag: "goal", maxSpeed } },
   ];
   spec.ui = {
@@ -177,7 +177,7 @@ export const buildPromptFallbackSpec = (prompt: string): GameSpecV1 => {
   spec.entities = [
     {
       id: "player",
-      kind: "ball",
+      kind: "player",
       position: { x: 120, y: 300 },
       velocity: { x: 0, y: 0 },
       size: { width: 28, height: 28 },

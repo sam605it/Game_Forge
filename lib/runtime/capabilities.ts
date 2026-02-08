@@ -1,10 +1,9 @@
-export const SUPPORTED_ENTITY_TYPES = ["ball", "goal", "cup", "wall", "bumper", "hazard", "decor"] as const;
+import { CONTROL_SCHEMES, ENTITY_KINDS, RULE_TYPES, SHAPES } from "@/engine/capabilities";
 
-export const SUPPORTED_SHAPES = ["circle", "rect", "line"] as const;
-
-export const SUPPORTED_CONTROLS = ["mouse_drag_shot", "click_shot", "keyboard_move"] as const;
-
-export const SUPPORTED_RULES = ["strokes", "score", "timer", "win_on_goal", "lose_on_timer"] as const;
+export const SUPPORTED_ENTITY_TYPES = ENTITY_KINDS;
+export const SUPPORTED_SHAPES = SHAPES;
+export const SUPPORTED_CONTROLS = CONTROL_SCHEMES;
+export const SUPPORTED_RULES = RULE_TYPES;
 
 export const ENGINE_CAPABILITIES = {
   entityTypes: SUPPORTED_ENTITY_TYPES,
